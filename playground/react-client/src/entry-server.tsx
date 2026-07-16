@@ -21,7 +21,7 @@ export function render(
   const scenario = getBrowserIntegrationScenario(_url);
   const runtime = createMicroFrameServerRuntime({
     origin: "http://127.0.0.1:5173",
-    composition: 'parallel',
+    composition: scenario === "active-hydration" ? "in-order" : "parallel",
     allowedOrigins: [
       "http://127.0.0.1:5173",
       reactFragmentOrigin,

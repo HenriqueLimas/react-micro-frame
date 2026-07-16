@@ -28,6 +28,25 @@ app.use((request, response, next) => {
   next();
 });
 
+app.get("/integration/active-hydration", (request, response) => {
+  const version = Math.max(1, Number(request.query.version) || 1);
+
+  response.status(200);
+  response.setHeader("content-type", "text/html; charset=utf-8");
+  response.setHeader("cache-control", "no-store");
+  response.flushHeaders();
+  response.write(`
+    <article data-browser-fixture="active-hydration" data-version="${version}">
+      <p data-active-stream>Server stream is active.</p>
+  `);
+  setTimeout(() => {
+    response.end(`
+      <p data-active-stream-complete>Server stream completed.</p>
+    </article>
+    `);
+  }, 2_500);
+});
+
 app.get("/integration/preload", (request, response) => {
   const version = Math.max(1, Number(request.query.version) || 1);
   const delay = version === 1 ? 0 : 900;

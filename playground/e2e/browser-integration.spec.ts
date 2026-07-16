@@ -2,6 +2,29 @@ import { expect, test } from "@playwright/test";
 
 const hostUrl = "http://127.0.0.1:5173";
 
+test("the host hydrates while its server-composed fragment is still streaming", async ({
+  page,
+}) => {
+  await page.goto(`${hostUrl}/?integration=active-hydration`, {
+    waitUntil: "commit",
+  });
+
+  const host = page.locator("[data-micro-frame-state]");
+  await expect(host).toHaveAttribute("data-micro-frame-state", "streaming");
+  await expect(host.locator("[data-active-stream]")).toBeVisible();
+  await expect(host.locator("[data-active-stream-complete]")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Confirm hydration" }).click();
+  await expect(page.locator("[data-hydration-confirmed]")).toHaveText(
+    "Hydrated",
+    { timeout: 1_000 },
+  );
+  await expect(host.locator("[data-active-stream-complete]")).toHaveCount(0);
+
+  await expect(host.locator("[data-active-stream-complete]")).toBeVisible();
+  await expect(host).toHaveAttribute("data-micro-frame-state", "complete");
+});
+
 test("browser streaming preserves blocking script execution order", async ({
   page,
 }) => {

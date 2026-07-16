@@ -17,16 +17,26 @@ const runtime = createMicroFrameClientRuntime({
   ],
 });
 
-hydrateRoot(
-  document.getElementById("root")!,
-  <StrictMode>
-    <MicroFrameProvider runtime={runtime}>
-      {scenario ? (
-        <BrowserIntegrationApp scenario={scenario} />
-      ) : (
-        <App mode="React host: SSR + hydration" />
-      )}
-    </MicroFrameProvider>
-  </StrictMode>,
-  { identifierPrefix: "playground-" },
-);
+hydrateWhenShellIsReady();
+
+function hydrateWhenShellIsReady(): void {
+  const root = document.getElementById("root");
+  if (!root || !root.firstChild) {
+    requestAnimationFrame(hydrateWhenShellIsReady);
+    return;
+  }
+
+  hydrateRoot(
+    root,
+    <StrictMode>
+      <MicroFrameProvider runtime={runtime}>
+        {scenario ? (
+          <BrowserIntegrationApp scenario={scenario} />
+        ) : (
+          <App mode="React host: SSR + hydration" />
+        )}
+      </MicroFrameProvider>
+    </StrictMode>,
+    { identifierPrefix: "playground-" },
+  );
+}
