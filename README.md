@@ -2,6 +2,8 @@
 
 Stream trusted HTML fragments from independently deployed applications directly into a React page. The host can fetch and progressively render a fragment during React SSR, adopt it during hydration, and fetch future updates in the browser.
 
+Inspired by Marko's [`micro-frame`](https://github.com/marko-js/micro-frame) component.
+
 > This package intentionally provides no iframe-style security boundary. Embedded HTML, CSS, and scripts are part of the host document and must be trusted.
 
 ## Status
