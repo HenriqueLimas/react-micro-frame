@@ -36,6 +36,7 @@ describe("React server integration", () => {
 
     expect(html).toContain("<b>loading</b>");
     expect(html).toContain("<article>embedded</article>");
+    expect(html).toContain('data-micro-frame-generation="0"');
     expect(html.indexOf("embedded")).toBeLessThan(html.lastIndexOf("after"));
     expect(html).toContain("react-micro-frame:settled");
   });

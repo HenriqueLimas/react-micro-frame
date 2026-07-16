@@ -169,8 +169,10 @@ export function createMicroFrameClientRuntime(
     const { start, end } = findMarkers(host);
     clearBetween(start, end);
     host.dataset.microFrameSrc = entry.request.src;
+    host.dataset.microFrameGeneration = String(entry.generation);
     host.dataset.microFrameState = "loading";
     delete host.dataset.microFrameError;
+    delete host.dataset.microFrameActivationError;
 
     const controller = new AbortController();
     entry.controller = controller;

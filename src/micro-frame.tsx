@@ -20,12 +20,13 @@ function StreamStatus({ promise }: { promise: Promise<void> }) {
 interface OpaqueHostProps {
   id: string;
   src: string;
+  generation: number;
   initialState: "idle" | "loading";
 }
 
 const OpaqueHost = memo(
   forwardRef<HTMLDivElement, OpaqueHostProps>(function OpaqueHost(
-    { id, src, initialState },
+    { id, src, generation, initialState },
     ref,
   ) {
     return (
@@ -34,6 +35,7 @@ const OpaqueHost = memo(
         id={hostElementId(id)}
         data-micro-frame-id={id}
         data-micro-frame-src={src}
+        data-micro-frame-generation={generation}
         data-micro-frame-state={initialState}
         suppressHydrationWarning
         dangerouslySetInnerHTML={{
@@ -60,12 +62,6 @@ export function MicroFrame({
   const hostRef = useRef<HTMLDivElement>(null);
   const initialHost = useRef<OpaqueHostProps | undefined>(undefined);
 
-  initialHost.current ??= {
-    id,
-    src,
-    initialState: runtime.environment === "server" ? "loading" : "idle",
-  };
-
   const handle = runtime.prepare({
     id,
     src,
@@ -74,6 +70,13 @@ export function MicroFrame({
     ...(timeout !== undefined ? { timeout } : {}),
     ...(fetch ? { fetch } : {}),
   });
+
+  initialHost.current ??= {
+    id,
+    src,
+    generation: handle.generation,
+    initialState: runtime.environment === "server" ? "loading" : "idle",
+  };
 
   useEffect(() => {
     const host = hostRef.current;

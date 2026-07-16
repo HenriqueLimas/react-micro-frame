@@ -1,4 +1,5 @@
 import { PassThrough } from "node:stream";
+import { JSDOM } from "jsdom";
 import { describe, expect, it, vi } from "vitest";
 import {
   createMicroFrameServerRuntime,
@@ -17,6 +18,14 @@ async function collect(
       : decoder.decode(chunk, { stream: true });
   }
   return result + decoder.decode();
+}
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
 }
 
 function streamedResponse(chunks: string[]): Response {
@@ -62,6 +71,484 @@ describe("server stream composition", () => {
     expect(html.indexOf("<h1>Hello</h1>")).toBeLessThan(html.indexOf("after"));
     expect(html).toContain('nonce="test-nonce"');
     expect(html).toContain('h.dataset.microFrameState="complete"');
+  });
+
+  it.each(["in-order", "parallel"] as const)(
+    "preserves ordering when %s source chunks mix bytes and strings",
+    async (composition) => {
+      const runtime = createMicroFrameServerRuntime({
+        origin: "https://host.test",
+        composition,
+      });
+
+      async function* reactOutput() {
+        yield Uint8Array.of(0xc3);
+        yield "between";
+        yield Uint8Array.of(0xa9);
+      }
+
+      await expect(collect(runtime.compose(reactOutput()))).resolves.toBe(
+        "\uFFFDbetween\uFFFD",
+      );
+    },
+  );
+
+  it("delivers completed frames without waiting for slower frames in parallel mode", async () => {
+    const streams = new Map<
+      string,
+      ReadableStreamDefaultController<Uint8Array>
+    >();
+    const fetch = vi.fn(
+      async (url: string) =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              streams.set(new URL(url).pathname, controller);
+            },
+          }),
+        ),
+    );
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      fetch,
+      composition: "parallel",
+      nonce: "test-nonce",
+    });
+    const slow = runtime.prepare({ id: "slow", src: "/slow" });
+    const fast = runtime.prepare({ id: "fast", src: "/fast" });
+    const finishReact = deferred<void>();
+    const output: string[] = [];
+
+    async function* reactOutput() {
+      yield `<main><div id="react-micro-frame-slow" data-micro-frame-src="/slow" data-micro-frame-generation="0">${startMarker("slow")}${endMarker("slow")}</div><div id="react-micro-frame-fast" data-micro-frame-src="/fast" data-micro-frame-generation="0">${startMarker("fast")}${endMarker("fast")}</div><footer>shell</footer>`;
+      await finishReact.promise;
+      yield "</main>";
+    }
+
+    const composing = (async () => {
+      for await (const chunk of runtime.compose(reactOutput())) {
+        output.push(
+          typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk),
+        );
+      }
+    })();
+
+    await vi.waitFor(() => expect(streams.size).toBe(2));
+    streams.get("/fast")!.enqueue(new TextEncoder().encode("<p>fast</p>"));
+    streams.get("/fast")!.close();
+
+    await vi.waitFor(() => expect(output.join("")).toContain("<p>fast</p>"));
+    expect(output.join("")).toContain("<footer>shell</footer>");
+    expect(output.join("")).not.toContain("<p>slow</p>");
+    await expect(fast.completed).resolves.toBeUndefined();
+
+    streams.get("/slow")!.enqueue(new TextEncoder().encode("<p>slow</p>"));
+    streams.get("/slow")!.close();
+    finishReact.resolve(undefined);
+    await composing;
+    await expect(slow.completed).resolves.toBeUndefined();
+
+    const html = output.join("");
+    expect(html.indexOf("<p>fast</p>")).toBeLessThan(
+      html.indexOf("<p>slow</p>"),
+    );
+    expect(html).toContain('style="display:none!important"');
+    expect(html).toContain('nonce="test-nonce"');
+    expect(html).toContain("document.createDocumentFragment()");
+
+    const dom = new JSDOM(html, { runScripts: "dangerously" });
+    expect(
+      dom.window.document.querySelector("#react-micro-frame-fast p")
+        ?.textContent,
+    ).toBe("fast");
+    expect(
+      dom.window.document.querySelector("#react-micro-frame-slow p")
+        ?.textContent,
+    ).toBe("slow");
+    expect(
+      dom.window.document.querySelector("[id^=react-micro-frame-payload-]"),
+    ).toBeNull();
+    expect(dom.window.document.querySelector("script")).toBeNull();
+    dom.window.close();
+  });
+
+  it("executes scripts after accepting a parallel payload generation", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      composition: "parallel",
+      fetch: async () =>
+        streamedResponse([
+          '<script>window.acceptedPayloadExecuted=true</script><p>remote</p>',
+        ]),
+    });
+    runtime.prepare({ id: "frame", src: "/remote" });
+
+    async function* reactOutput() {
+      yield `<div id="react-micro-frame-frame" data-micro-frame-src="/remote" data-micro-frame-generation="0">${startMarker("frame")}${endMarker("frame")}</div>`;
+    }
+
+    const html = await collect(runtime.compose(reactOutput()));
+    const dom = new JSDOM(html, { runScripts: "dangerously" });
+
+    expect(
+      (dom.window as unknown as { acceptedPayloadExecuted?: boolean })
+        .acceptedPayloadExecuted,
+    ).toBe(true);
+    expect(
+      dom.window.document.querySelector("#react-micro-frame-frame p")
+        ?.textContent,
+    ).toBe("remote");
+    dom.window.close();
+  });
+
+  it("uses TrustedHTML to activate a parallel payload when Trusted Types are enforced", async () => {
+    const policyNames: string[] = [];
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      composition: "parallel",
+      trustedTypesPolicyName: "micro-frame-test",
+      fetch: async () => streamedResponse(['<p id="remote">remote</p>']),
+    });
+    runtime.prepare({ id: "frame", src: "/remote" });
+
+    async function* reactOutput() {
+      yield `<div id="react-micro-frame-frame" data-micro-frame-src="/remote" data-micro-frame-generation="0">${startMarker("frame")}${endMarker("frame")}</div>`;
+    }
+
+    const html = await collect(runtime.compose(reactOutput()));
+    const dom = new JSDOM(html, {
+      runScripts: "dangerously",
+      beforeParse(window) {
+        const originalWrite = window.document.write.bind(window.document);
+        class TrustedHTMLValue {
+          constructor(readonly value: string) {}
+          toString() {
+            return this.value;
+          }
+        }
+        Object.defineProperty(window, "trustedTypes", {
+          value: {
+            createPolicy(
+              name: string,
+              rules: { createHTML(value: string): string },
+            ) {
+              policyNames.push(name);
+              return {
+                createHTML(value: string) {
+                  return new TrustedHTMLValue(rules.createHTML(value));
+                },
+              };
+            },
+          },
+        });
+        window.document.write = ((value: string | TrustedHTMLValue) => {
+          if (!(value instanceof TrustedHTMLValue)) {
+            throw new TypeError("TrustedHTML required");
+          }
+          originalWrite(value.toString());
+        }) as typeof window.document.write;
+      },
+    });
+
+    expect(policyNames).toEqual(["micro-frame-test"]);
+    expect(
+      dom.window.document.querySelector("#react-micro-frame-frame #remote")
+        ?.textContent,
+    ).toBe("remote");
+    expect(
+      dom.window.document.querySelector("#react-micro-frame-frame")?.getAttribute(
+        "data-micro-frame-state",
+      ),
+    ).toBe("complete");
+    dom.window.close();
+  });
+
+  it("keeps the loading state until a parallel payload is ready to emit", async () => {
+    let stream!: ReadableStreamDefaultController<Uint8Array>;
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      composition: "parallel",
+      fetch: async () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              stream = controller;
+            },
+          }),
+        ),
+    });
+    const handle = runtime.prepare({ id: "frame", src: "/remote" });
+    const output: string[] = [];
+
+    async function* reactOutput() {
+      yield `<div id="react-micro-frame-frame" data-micro-frame-src="/remote" data-micro-frame-generation="0">${startMarker("frame")}${endMarker("frame")}</div>`;
+      await handle.started;
+      yield "started-status";
+      await handle.completed;
+      yield "completed-status";
+    }
+
+    const composing = (async () => {
+      for await (const chunk of runtime.compose(reactOutput())) {
+        output.push(
+          typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk),
+        );
+      }
+    })();
+
+    stream.enqueue(new TextEncoder().encode("<p>remote</p>"));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(output.join("")).not.toContain("started-status");
+
+    stream.close();
+    await composing;
+
+    const html = output.join("");
+    expect(html.indexOf("<p>remote</p>")).toBeLessThan(
+      html.indexOf("started-status"),
+    );
+    expect(html.indexOf("react-micro-frame:settled")).toBeLessThan(
+      html.indexOf("completed-status"),
+    );
+  });
+
+  it("waits to emit parallel payloads outside unsafe parser contexts", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      composition: "parallel",
+      fetch: async () => streamedResponse(["<p>remote</p>"]),
+    });
+    runtime.prepare({ id: "frame", src: "/remote" });
+
+    async function* reactOutput() {
+      yield `<body><div id="react-micro-frame-frame" data-micro-frame-src="/remote" data-micro-frame-generation="0">${startMarker("frame")}${endMarker("frame")}</div><iframe>fallback`;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      yield "</iframe></body>";
+    }
+
+    const html = await collect(runtime.compose(reactOutput()));
+    expect(html.indexOf("</iframe>")).toBeLessThan(html.indexOf("<p>remote</p>"));
+
+    const dom = new JSDOM(html, { runScripts: "dangerously" });
+    expect(
+      dom.window.document.querySelector("#react-micro-frame-frame p")
+        ?.textContent,
+    ).toBe("remote");
+    expect(dom.window.document.querySelector("iframe")?.textContent).toBe(
+      "fallback",
+    );
+    dom.window.close();
+  });
+
+  it("recognizes raw-text closing tags with long whitespace", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      composition: "parallel",
+      fetch: async () => streamedResponse(["<p>remote</p>"]),
+    });
+    runtime.prepare({ id: "frame", src: "/remote" });
+
+    async function* reactOutput() {
+      yield `<div id="react-micro-frame-frame" data-micro-frame-src="/remote" data-micro-frame-generation="0">${startMarker("frame")}${endMarker("frame")}</div><script>window.shell=true</script${" ".repeat(256)}>`;
+    }
+
+    await expect(collect(runtime.compose(reactOutput()))).resolves.toContain(
+      "<p>remote</p>",
+    );
+  });
+
+  it("does not emit parallel payloads inside script double-escaped text", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      composition: "parallel",
+      fetch: async () => streamedResponse(['<p id="remote">remote</p>']),
+    });
+    runtime.prepare({ id: "frame", src: "/remote" });
+
+    async function* reactOutput() {
+      yield `<div id="react-micro-frame-frame" data-micro-frame-src="/remote" data-micro-frame-generation="0">${startMarker("frame")}${endMarker("frame")}</div><script>window.shellSnippet="<!--<script></script>`;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      yield `-->";</script><p id="shell">shell</p>`;
+    }
+
+    const html = await collect(runtime.compose(reactOutput()));
+    expect(html.indexOf('-->";</script>')).toBeLessThan(
+      html.indexOf('<p id="remote">'),
+    );
+
+    const dom = new JSDOM(html, { runScripts: "dangerously" });
+    expect(
+      (dom.window as unknown as { shellSnippet?: string }).shellSnippet,
+    ).toBe("<!--<script></script>-->");
+    expect(
+      dom.window.document.querySelector("#react-micro-frame-frame #remote")
+        ?.textContent,
+    ).toBe("remote");
+    dom.window.close();
+  });
+
+  it.each([
+    {
+      context: "form",
+      open: '<form id="outer"><span id="cursor">',
+      close: '</span><input id="outer-input"></form>',
+      payload: '<form id="inner"><input id="inner-input"></form>',
+    },
+    {
+      context: "anchor",
+      open: '<a id="outer"><span id="cursor">',
+      close: "</span></a>",
+      payload: '<a id="inner">inner</a>',
+    },
+    {
+      context: "button",
+      open: '<button id="outer"><span id="cursor">',
+      close: "</span></button>",
+      payload: '<button id="inner">inner</button>',
+    },
+    {
+      context: "heading",
+      open: '<h1 id="outer"><span id="cursor">',
+      close: "</span></h1>",
+      payload: '<h2 id="inner">inner</h2>',
+    },
+    {
+      context: "nobr",
+      open: '<nobr id="outer"><span id="cursor">',
+      close: "</span></nobr>",
+      payload: '<nobr id="inner">inner</nobr>',
+    },
+    {
+      context: "list item",
+      open: '<ul><li id="outer"><span id="cursor">',
+      close: "</span></li></ul>",
+      payload: '<li id="inner">inner</li>',
+    },
+    {
+      context: "definition term",
+      open: '<dl><dt id="outer"><span id="cursor">',
+      close: "</span></dt></dl>",
+      payload: '<dd id="inner">inner</dd>',
+    },
+    {
+      context: "definition description",
+      open: '<dl><dd id="outer"><span id="cursor">',
+      close: "</span></dd></dl>",
+      payload: '<dt id="inner">inner</dt>',
+    },
+    {
+      context: "table cell",
+      open: '<table><tbody><tr><td id="outer"><span id="cursor">',
+      close: "</span></td></tr></tbody></table>",
+      payload: '</td><p id="inner">inner</p>',
+    },
+  ])(
+    "waits to emit parallel payloads outside an open $context context",
+    async ({ open, close, payload }) => {
+      const runtime = createMicroFrameServerRuntime({
+        origin: "https://host.test",
+        composition: "parallel",
+        fetch: async () => streamedResponse([payload]),
+      });
+      runtime.prepare({ id: "frame", src: "/remote" });
+
+      async function* reactOutput() {
+        yield `<body><div id="react-micro-frame-frame" data-micro-frame-src="/remote" data-micro-frame-generation="0">${startMarker("frame")}${endMarker("frame")}</div>${open}`;
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        yield `${close}<div id="after"></div>`;
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        yield "</body>";
+      }
+
+      const html = await collect(runtime.compose(reactOutput()));
+      expect(html.indexOf('id="after"')).toBeLessThan(
+        html.indexOf('id="inner"'),
+      );
+
+      const dom = new JSDOM(html, { runScripts: "dangerously" });
+      const document = dom.window.document;
+      expect(document.getElementById("outer")?.contains(
+        document.getElementById("cursor"),
+      )).toBe(true);
+      expect(document.getElementById("react-micro-frame-frame")?.contains(
+        document.getElementById("inner"),
+      )).toBe(true);
+      if (document.getElementById("outer-input")) {
+        expect(document.getElementById("outer")?.contains(
+          document.getElementById("outer-input"),
+        )).toBe(true);
+      }
+      dom.window.close();
+    },
+  );
+
+  it("discards a parallel payload when its host generation was replaced", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      composition: "parallel",
+      fetch: async () =>
+        streamedResponse([
+          '<script>window.stalePayloadExecuted=true</script><p>stale</p>',
+        ]),
+    });
+    runtime.prepare({ id: "frame", src: "/old" });
+
+    async function* reactOutput() {
+      yield `<body><div id="react-micro-frame-frame" data-micro-frame-src="/old" data-micro-frame-generation="0">${startMarker("frame")}${endMarker("frame")}</div><script>document.getElementById("react-micro-frame-frame").outerHTML='<div id="react-micro-frame-frame" data-micro-frame-src="/new" data-micro-frame-generation="1"></div>'</script>`;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      yield "</body>";
+    }
+
+    const html = await collect(runtime.compose(reactOutput()));
+    const dom = new JSDOM(html, {
+      runScripts: "dangerously",
+      url: "https://host.test/",
+    });
+    const host = dom.window.document.getElementById("react-micro-frame-frame");
+
+    expect(host?.dataset.microFrameSrc).toBe("/new");
+    expect(host?.querySelector("p")).toBeNull();
+    expect(
+      (dom.window as unknown as { stalePayloadExecuted?: boolean })
+        .stalePayloadExecuted,
+    ).toBeUndefined();
+    expect(
+      dom.window.document.querySelector("[id^=react-micro-frame-payload-]"),
+    ).toBeNull();
+    expect(dom.window.document.querySelectorAll("script")).toHaveLength(1);
+    dom.window.close();
+  });
+
+  it("settles parallel failures and removes their transient script", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      composition: "parallel",
+      fetch: async () =>
+        new Response("missing", { status: 404, statusText: "Not Found" }),
+    });
+    const handle = runtime.prepare({ id: "frame", src: "/missing" });
+
+    async function* reactOutput() {
+      yield `<div id="react-micro-frame-frame" data-micro-frame-src="/missing" data-micro-frame-generation="0">${startMarker("frame")}${endMarker("frame")}</div>`;
+    }
+
+    const html = await collect(runtime.compose(reactOutput()));
+    await expect(handle.started).rejects.toThrow("404 Not Found");
+    await expect(handle.completed).rejects.toThrow("404 Not Found");
+
+    const dom = new JSDOM(html, { runScripts: "dangerously" });
+    const host = dom.window.document.getElementById("react-micro-frame-frame");
+    expect(host?.dataset.microFrameState).toBe("error");
+    expect(
+      [...(host?.childNodes ?? [])]
+        .filter((node) => node.nodeType === dom.window.Node.COMMENT_NODE)
+        .map((node) => node.nodeValue),
+    ).toEqual([
+      "react-micro-frame:frame:start",
+      "react-micro-frame:frame:end",
+    ]);
+    expect(dom.window.document.querySelector("script")).toBeNull();
+    dom.window.close();
   });
 
   it("rejects disallowed origins without making a request", async () => {

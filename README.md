@@ -6,7 +6,7 @@ Stream trusted HTML fragments from independently deployed applications directly 
 
 ## Status
 
-This repository is an initial implementation of the provider/runtime architecture. It supports a single progressive HTML stream per `<MicroFrame>`. Multiplexed slots and out-of-order remote streams are not implemented yet.
+This repository is an initial implementation of the provider/runtime architecture. It supports a single progressive HTML stream per `<MicroFrame>` and opt-in parallel server composition. Multiplexed slots are not implemented yet.
 
 ## Installation
 
@@ -90,7 +90,28 @@ export function render(request, response) {
 }
 ```
 
-The composer applies backpressure and pauses later React output while an in-order micro-frame is streaming.
+The composer applies backpressure and pauses later React output while an in-order micro-frame is streaming. This default preserves progressive parser-native rendering with no buffering.
+
+For pages with multiple independent frames, opt into parallel composition to prevent a slow frame from blocking the shell or frames whose responses are already complete:
+
+```ts
+createMicroFrameServerRuntime({
+  origin: "https://www.example.com",
+  composition: "parallel",
+});
+```
+
+Parallel composition emits React output without waiting at frame markers, buffers each remote response, and delivers completed frames through targeted hidden containers. Responses are delivered as soon as they finish, so they may render out of request order. This mode trades per-response memory and progressive chunk rendering for avoiding head-of-line blocking.
+
+Parallel payload activation is compatible with `require-trusted-types-for 'script'`. The runtime creates a `react-micro-frame` Trusted Types policy by default; if your `trusted-types` directive restricts policy names, allow that name or configure another one:
+
+```ts
+createMicroFrameServerRuntime({
+  origin: "https://www.example.com",
+  composition: "parallel",
+  trustedTypesPolicyName: "my-micro-frame-policy",
+});
+```
 
 ### Server policy
 
@@ -189,7 +210,7 @@ The runtime—not the Error Boundary—aborts requests and clears partial DOM be
 - Script side effects cannot be undone when a frame reloads.
 - Server start, completion, and error signaling uses inline runtime scripts; pass a CSP nonce when required.
 - The opaque host must never be reconciled by React. The implementation keeps it memoized and uses stable comment anchors.
-- Out-of-order remote insertion is not yet supported.
+- Parallel server composition buffers each frame's complete response before inserting it. Accepted response scripts initially execute in the temporary hidden container before its children move into the frame host; superseded responses remain inert and are discarded.
 - Multiplexed SSE/NDJSON slots are not yet supported.
 - A browser integration suite for blocking scripts, styles, preloads, hydration during an active stream, and CSP should be added before a production release.
 

@@ -57,6 +57,7 @@ describe("client runtime", () => {
     expect(host.textContent).toBe("firsthéllo");
     expect(host.querySelector("p")?.textContent).toBe("héllo");
     expect(host.dataset.microFrameState).toBe("complete");
+    expect(host.dataset.microFrameGeneration).toBe("0");
     expect(fetch).toHaveBeenCalledOnce();
     detach();
   });
