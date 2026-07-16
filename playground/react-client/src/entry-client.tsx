@@ -3,7 +3,12 @@ import { hydrateRoot } from "react-dom/client";
 import { MicroFrameProvider } from "react-micro-frame";
 import { createMicroFrameClientRuntime } from "react-micro-frame/client";
 import { App } from "./App";
+import {
+  BrowserIntegrationApp,
+  getBrowserIntegrationScenario,
+} from "./BrowserIntegrationApp";
 
+const scenario = getBrowserIntegrationScenario(window.location.href);
 const runtime = createMicroFrameClientRuntime({
   allowedOrigins: [
     window.location.origin,
@@ -16,7 +21,11 @@ hydrateRoot(
   document.getElementById("root")!,
   <StrictMode>
     <MicroFrameProvider runtime={runtime}>
-      <App mode="React host: SSR + hydration" />
+      {scenario ? (
+        <BrowserIntegrationApp scenario={scenario} />
+      ) : (
+        <App mode="React host: SSR + hydration" />
+      )}
     </MicroFrameProvider>
   </StrictMode>,
   { identifierPrefix: "playground-" },

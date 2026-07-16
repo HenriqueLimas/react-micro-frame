@@ -28,6 +28,39 @@ app.use((request, response, next) => {
   next();
 });
 
+app.get("/integration/blocking-script", (request, response) => {
+  const version = Math.max(1, Number(request.query.version) || 1);
+  const delay = version === 1 ? 0 : 700;
+
+  response.status(200);
+  response.setHeader("content-type", "text/html; charset=utf-8");
+  response.setHeader("cache-control", "no-store");
+  response.end(`
+    <article data-browser-fixture="blocking-script" data-version="${version}">
+      <p data-before-script>Content before the blocking script.</p>
+      <script src="http://127.0.0.1:5174/integration/blocking-script.js?version=${version}&delay=${delay}"></script>
+      <script>
+        document.currentScript.closest("[data-browser-fixture]").dataset.scriptOrder += ",inline";
+      </script>
+      <p data-after-script>Content after the blocking script.</p>
+    </article>
+  `);
+});
+
+app.get("/integration/blocking-script.js", (request, response) => {
+  const version = Math.max(1, Number(request.query.version) || 1);
+  const delay = Math.min(4_000, Math.max(0, Number(request.query.delay) || 0));
+
+  response.status(200);
+  response.setHeader("content-type", "text/javascript; charset=utf-8");
+  response.setHeader("cache-control", "no-store");
+  setTimeout(() => {
+    response.end(`
+      document.currentScript.closest("[data-browser-fixture]").dataset.scriptOrder = "external-${version}";
+    `);
+  }, delay);
+});
+
 app.get("/fragment", async (request, response, next) => {
   try {
     const module = await vite.ssrLoadModule("/src/fragment.tsx") as typeof import("./src/fragment");

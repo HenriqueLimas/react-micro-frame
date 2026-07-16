@@ -4,6 +4,10 @@ import { renderToPipeableStream } from "react-dom/server";
 import { MicroFrameProvider } from "react-micro-frame";
 import { createMicroFrameServerRuntime } from "react-micro-frame/server";
 import { App } from "./App";
+import {
+  BrowserIntegrationApp,
+  getBrowserIntegrationScenario,
+} from "./BrowserIntegrationApp";
 
 const reactFragmentOrigin = "http://127.0.0.1:5174";
 const markoFragmentOrigin = "http://127.0.0.1:5175";
@@ -14,6 +18,7 @@ export function render(
   head: string,
   tail: string,
 ): Promise<void> {
+  const scenario = getBrowserIntegrationScenario(_url);
   const runtime = createMicroFrameServerRuntime({
     origin: "http://127.0.0.1:5173",
     composition: 'parallel',
@@ -28,7 +33,11 @@ export function render(
     let started = false;
     const rendered = renderToPipeableStream(
       <MicroFrameProvider runtime={runtime}>
-        <App mode="React host: SSR + hydration" />
+        {scenario ? (
+          <BrowserIntegrationApp scenario={scenario} />
+        ) : (
+          <App mode="React host: SSR + hydration" />
+        )}
       </MicroFrameProvider>,
       {
         identifierPrefix: "playground-",
