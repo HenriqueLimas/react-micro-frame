@@ -3,7 +3,8 @@ import { MicroFrame } from "react-micro-frame";
 
 export type BrowserIntegrationScenario =
   | "blocking-script"
-  | "blocking-style";
+  | "blocking-style"
+  | "preload";
 
 export function getBrowserIntegrationScenario(
   url: string,
@@ -11,7 +12,9 @@ export function getBrowserIntegrationScenario(
   const scenario = new URL(url, "http://127.0.0.1:5173").searchParams.get(
     "integration",
   );
-  return scenario === "blocking-script" || scenario === "blocking-style"
+  return scenario === "blocking-script" ||
+      scenario === "blocking-style" ||
+      scenario === "preload"
     ? scenario
     : undefined;
 }

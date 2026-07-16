@@ -28,6 +28,39 @@ app.use((request, response, next) => {
   next();
 });
 
+app.get("/integration/preload", (request, response) => {
+  const version = Math.max(1, Number(request.query.version) || 1);
+  const delay = version === 1 ? 0 : 900;
+
+  response.status(200);
+  response.setHeader("content-type", "text/html; charset=utf-8");
+  response.setHeader("cache-control", "no-store");
+  response.end(`
+    <article data-browser-fixture="preload" data-version="${version}">
+      <link rel="stylesheet" href="http://127.0.0.1:5174/integration/blocking-preload.css?version=${version}&delay=${delay}">
+      <img data-preload-target src="http://127.0.0.1:5174/integration/preload-target.svg?version=${version}" width="20" height="20" alt="Preloaded target">
+    </article>
+  `);
+});
+
+app.get("/integration/blocking-preload.css", (request, response) => {
+  const delay = Math.min(4_000, Math.max(0, Number(request.query.delay) || 0));
+
+  response.status(200);
+  response.setHeader("content-type", "text/css; charset=utf-8");
+  response.setHeader("cache-control", "no-store");
+  setTimeout(() => response.end("[data-preload-target] { display: block; }"), delay);
+});
+
+app.get("/integration/preload-target.svg", (_request, response) => {
+  response.status(200);
+  response.setHeader("content-type", "image/svg+xml");
+  response.setHeader("cache-control", "no-store");
+  response.end(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="green"/></svg>',
+  );
+});
+
 app.get("/integration/blocking-style", (request, response) => {
   const version = Math.max(1, Number(request.query.version) || 1);
   const delay = version === 1 ? 0 : 700;
