@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { MicroFrame } from "react-micro-frame";
 
-export type BrowserIntegrationScenario = "blocking-script";
+export type BrowserIntegrationScenario =
+  | "blocking-script"
+  | "blocking-style";
 
 export function getBrowserIntegrationScenario(
   url: string,
@@ -9,7 +11,9 @@ export function getBrowserIntegrationScenario(
   const scenario = new URL(url, "http://127.0.0.1:5173").searchParams.get(
     "integration",
   );
-  return scenario === "blocking-script" ? scenario : undefined;
+  return scenario === "blocking-script" || scenario === "blocking-style"
+    ? scenario
+    : undefined;
 }
 
 export function BrowserIntegrationApp({

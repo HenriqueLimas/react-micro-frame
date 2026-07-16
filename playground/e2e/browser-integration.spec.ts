@@ -22,3 +22,20 @@ test("browser streaming preserves blocking script execution order", async ({
   );
   await expect(host).toHaveAttribute("data-micro-frame-state", "complete");
 });
+
+test("browser streaming waits for blocking styles before revealing content", async ({
+  page,
+}) => {
+  await page.goto(`${hostUrl}/?integration=blocking-style`);
+
+  const host = page.locator("[data-micro-frame-state]");
+  const styledContent = host.locator("[data-styled-content]");
+  await expect(styledContent).toHaveCSS("color", "rgb(12, 34, 56)");
+
+  await page.getByRole("button", { name: "Reload fixture" }).click();
+
+  await expect(host).toHaveAttribute("data-micro-frame-state", "streaming");
+  await expect(styledContent).toHaveCount(0);
+  await expect(styledContent).toHaveCSS("color", "rgb(12, 34, 56)");
+  await expect(host).toHaveAttribute("data-micro-frame-state", "complete");
+});

@@ -28,6 +28,36 @@ app.use((request, response, next) => {
   next();
 });
 
+app.get("/integration/blocking-style", (request, response) => {
+  const version = Math.max(1, Number(request.query.version) || 1);
+  const delay = version === 1 ? 0 : 700;
+
+  response.status(200);
+  response.setHeader("content-type", "text/html; charset=utf-8");
+  response.setHeader("cache-control", "no-store");
+  response.end(`
+    <article data-browser-fixture="blocking-style" data-version="${version}">
+      <link rel="stylesheet" href="http://127.0.0.1:5174/integration/blocking-style.css?version=${version}&delay=${delay}">
+      <p data-styled-content>Content protected from an unstyled reveal.</p>
+    </article>
+  `);
+});
+
+app.get("/integration/blocking-style.css", (request, response) => {
+  const delay = Math.min(4_000, Math.max(0, Number(request.query.delay) || 0));
+
+  response.status(200);
+  response.setHeader("content-type", "text/css; charset=utf-8");
+  response.setHeader("cache-control", "no-store");
+  setTimeout(() => {
+    response.end(`
+      [data-browser-fixture="blocking-style"] [data-styled-content] {
+        color: rgb(12, 34, 56);
+      }
+    `);
+  }, delay);
+});
+
 app.get("/integration/blocking-script", (request, response) => {
   const version = Math.max(1, Number(request.query.version) || 1);
   const delay = version === 1 ? 0 : 700;
