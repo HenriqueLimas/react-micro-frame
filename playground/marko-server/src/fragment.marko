@@ -1,0 +1,68 @@
+import { delay } from "./delay";
+
+<let/count = 0/>
+
+<article class="marko-card" data-marko-fragment data-marko-interactive data-version=input.version>
+  <style>
+    .marko-card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #a8dfca;
+      border-radius: 16px;
+      padding: 24px;
+      color: #12372a;
+      background: linear-gradient(135deg, #effcf7, #dff7ed);
+      box-shadow: inset 4px 0 #27a273;
+    }
+    .marko-card::after {
+      content: "MARKO";
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      color: #19825b;
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+    }
+    .marko-card h3 { margin: 0 0 8px; font-size: 1.45rem; }
+    .marko-card p { margin: 8px 0; }
+    .marko-card .chunk { color: #3c695a; }
+    .marko-card button {
+      margin-top: 10px;
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 13px;
+      color: white;
+      background: #19825b;
+      cursor: pointer;
+    }
+    .marko-card .counter { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+    .marko-card .counter button { margin-top: 0; min-width: 36px; }
+    .marko-card output { min-width: 2ch; text-align: center; font-size: 1.15rem; font-weight: 800; }
+  </style>
+
+  <h3>Remote Marko fragment v${input.version}</h3>
+  <p class="chunk" data-first-chunk>
+    This heading, counter, and stylesheet arrived in the first response chunk.
+  </p>
+
+  <div class="counter" aria-label="Marko fragment counter">
+    <button
+      type="button"
+      data-counter-decrement
+      aria-label="Decrement Marko counter"
+      onClick() { count-- }
+    >−</button>
+    <output data-counter-output aria-live="polite">${count}</output>
+    <button
+      type="button"
+      data-counter-increment
+      aria-label="Increment Marko counter"
+      onClick() { count++ }
+    >+</button>
+  </div>
+
+  <await|_|=delay(input.delay)>
+    <p data-stream-complete>The delayed chunk arrived after ${input.delay}ms.</p>
+  </await>
+</article>

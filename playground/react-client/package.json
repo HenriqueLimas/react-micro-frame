@@ -1,0 +1,23 @@
+{
+  "name": "playground-react-client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch server.ts",
+    "build": "vite build",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.3",
+    "express": "^5.2.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-micro-frame": "file:../..",
+    "tsx": "^4.23.1",
+    "vite": "^8.1.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6"
+  }
+}

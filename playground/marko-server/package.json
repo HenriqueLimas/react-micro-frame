@@ -1,0 +1,22 @@
+{
+  "name": "playground-marko-server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch server.ts",
+    "build": "vite build --ssr src/fragment.marko",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@marko/compiler": "^5.41.2",
+    "@marko/vite": "^6.1.6",
+    "express": "^5.2.1",
+    "marko": "^6.3.13",
+    "tsx": "^4.23.1",
+    "vite": "^8.1.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6"
+  }
+}
