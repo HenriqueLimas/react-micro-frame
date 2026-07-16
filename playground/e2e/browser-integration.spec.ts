@@ -2,6 +2,32 @@ import { expect, test } from "@playwright/test";
 
 const hostUrl = "http://127.0.0.1:5173";
 
+test("a strict nonce-based CSP permits server composition and hydration", async ({
+  page,
+}) => {
+  const violations: string[] = [];
+  await page.exposeFunction("recordCspViolation", (directive: string) => {
+    violations.push(directive);
+  });
+  await page.addInitScript(() => {
+    document.addEventListener("securitypolicyviolation", (event) => {
+      void window.recordCspViolation(event.violatedDirective);
+    });
+  });
+
+  const response = await page.goto(`${hostUrl}/?integration=csp`);
+  expect(response?.headers()["content-security-policy"]).toContain(
+    "script-src 'nonce-browser-integration-nonce' 'strict-dynamic'",
+  );
+
+  const host = page.locator("[data-micro-frame-state]");
+  await expect(host.locator('[data-browser-fixture="csp"]')).toBeVisible();
+  await expect(host).toHaveAttribute("data-micro-frame-state", "complete");
+  await page.getByRole("button", { name: "Confirm hydration" }).click();
+  await expect(page.locator("[data-hydration-confirmed]")).toHaveText("Hydrated");
+  expect(violations).toEqual([]);
+});
+
 test("the host hydrates while its server-composed fragment is still streaming", async ({
   page,
 }) => {

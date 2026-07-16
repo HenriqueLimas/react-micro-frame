@@ -214,7 +214,6 @@ The runtime—not the Error Boundary—aborts requests and clears partial DOM be
 - The opaque host must never be reconciled by React. The implementation keeps it memoized and uses stable comment anchors.
 - Parallel server composition buffers each frame's complete response before inserting it. Accepted response scripts initially execute in the temporary hidden container before its children move into the frame host; superseded responses remain inert and are discarded.
 - Multiplexed SSE/NDJSON slots are not yet supported.
-- A browser integration suite for blocking scripts, styles, preloads, hydration during an active stream, and CSP should be added before a production release.
 
 ## Playground
 

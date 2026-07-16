@@ -28,6 +28,19 @@ app.use((request, response, next) => {
   next();
 });
 
+app.get("/integration/csp", (request, response) => {
+  const version = Math.max(1, Number(request.query.version) || 1);
+
+  response.status(200);
+  response.setHeader("content-type", "text/html; charset=utf-8");
+  response.setHeader("cache-control", "no-store");
+  response.end(`
+    <article data-browser-fixture="csp" data-version="${version}">
+      <p>Server composition ran under a strict content security policy.</p>
+    </article>
+  `);
+});
+
 app.get("/integration/active-hydration", (request, response) => {
   const version = Math.max(1, Number(request.query.version) || 1);
 

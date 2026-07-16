@@ -17,6 +17,7 @@ export function render(
   response: ExpressResponse,
   head: string,
   tail: string,
+  nonce?: string,
 ): Promise<void> {
   const scenario = getBrowserIntegrationScenario(_url);
   const runtime = createMicroFrameServerRuntime({
@@ -27,6 +28,7 @@ export function render(
       reactFragmentOrigin,
       markoFragmentOrigin,
     ],
+    ...(nonce ? { nonce } : {}),
   });
 
   return new Promise((resolve, reject) => {
@@ -41,6 +43,7 @@ export function render(
       </MicroFrameProvider>,
       {
         identifierPrefix: "playground-",
+        nonce,
         onShellReady() {
           started = true;
           response.status(200);

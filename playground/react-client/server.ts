@@ -34,16 +34,35 @@ app.get("/health", async (_request, response) => {
 app.use(vite.middlewares);
 app.use(async (request, response, next) => {
   try {
+    const nonce = new URL(
+      request.originalUrl,
+      "http://127.0.0.1:5173",
+    ).searchParams.get("integration") === "csp"
+      ? "browser-integration-nonce"
+      : undefined;
+    if (nonce) {
+      response.setHeader(
+        "content-security-policy",
+        `default-src 'none'; base-uri 'none'; script-src 'nonce-${nonce}' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:*`,
+      );
+    }
+
     const templatePath = path.join(root, "index.html");
     const source = await fs.readFile(templatePath, "utf8");
-    const template = await vite.transformIndexHtml(request.originalUrl, source);
+    let template = await vite.transformIndexHtml(request.originalUrl, source);
+    if (nonce) {
+      template = template.replaceAll(
+        /<script(?![^>]*\snonce(?:\s|=|>))/g,
+        `<script nonce="${nonce}"`,
+      );
+    }
     const [head, tail] = template.split("<!--app-html-->");
     if (head === undefined || tail === undefined) {
       throw new Error("SSR placeholder is missing from index.html.");
     }
 
     const entry = await vite.ssrLoadModule("/src/entry-server.tsx") as typeof import("./src/entry-server");
-    await entry.render(request.originalUrl, response, head, tail);
+    await entry.render(request.originalUrl, response, head, tail, nonce);
   } catch (error) {
     vite.ssrFixStacktrace(error as Error);
     next(error);

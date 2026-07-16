@@ -31,4 +31,4 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The Playwright suite verifies SSR and hydration, both provider implementations, progressive endpoint delivery, browser-side source updates, React hook state, Marko tag-variable state, and unmount/remount behavior.
+The Playwright suite verifies SSR and hydration, both provider implementations, progressive endpoint delivery, browser-side source updates, React hook state, Marko tag-variable state, and unmount/remount behavior. Focused browser fixtures also cover blocking scripts and styles, preload look-ahead, hydration during an active server stream, and strict nonce-based CSP.

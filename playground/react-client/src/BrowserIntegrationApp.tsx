@@ -5,6 +5,7 @@ export type BrowserIntegrationScenario =
   | "active-hydration"
   | "blocking-script"
   | "blocking-style"
+  | "csp"
   | "preload";
 
 export function getBrowserIntegrationScenario(
@@ -16,6 +17,7 @@ export function getBrowserIntegrationScenario(
   return scenario === "active-hydration" ||
       scenario === "blocking-script" ||
       scenario === "blocking-style" ||
+      scenario === "csp" ||
       scenario === "preload"
     ? scenario
     : undefined;
