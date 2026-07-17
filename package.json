@@ -5,6 +5,7 @@
   "type": "module",
   "sideEffects": false,
   "workspaces": [
+    ".",
     "playground/react-client",
     "playground/react-server",
     "playground/marko-server"
@@ -31,12 +32,15 @@
   },
   "scripts": {
     "build": "tsup",
-    "check": "tsc --noEmit && npm run check --workspaces --if-present",
+    "changeset": "changeset",
+    "check": "tsc --noEmit && npm run check --workspace playground-react-client --workspace playground-react-server --workspace playground-marko-server --if-present",
     "test": "vitest run",
     "test:watch": "vitest",
     "playground": "npm run build && npm run playground:dev",
     "playground:dev": "concurrently -k -n marko,react,host -c magenta,blue,green \"npm run dev -w playground-marko-server\" \"npm run dev -w playground-react-server\" \"npm run dev -w playground-react-client\"",
-    "test:e2e": "npm run build && playwright test --config playground/playwright.config.ts"
+    "test:e2e": "npm run build && playwright test --config playground/playwright.config.ts",
+    "version-packages": "changeset version",
+    "release": "npm run build && changeset publish"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -46,12 +50,13 @@
     "writable-dom": "^1.0.6"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.31.1",
     "@playwright/test": "^1.55.0",
     "@types/jsdom": "^21.1.7",
-    "concurrently": "^10.0.3",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "concurrently": "^10.0.3",
     "jsdom": "^26.1.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

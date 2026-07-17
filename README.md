@@ -239,3 +239,9 @@ npm test
 npm run build
 npm run test:e2e
 ```
+
+## Releases
+
+Add a release entry with `npm run changeset` and commit the generated file. When changesets reach `main`, the release workflow opens or updates a Version Packages pull request. Merging that pull request publishes the package to npm.
+
+The repository must have an `NPM_TOKEN` Actions secret with permission to publish `react-micro-frame`, and GitHub Actions must be allowed to create pull requests.
