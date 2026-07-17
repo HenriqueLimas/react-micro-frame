@@ -1,6 +1,6 @@
 {
   "name": "react-micro-frame",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Stream independently rendered HTML into React applications on the server and in the browser.",
   "type": "module",
   "sideEffects": false,
