@@ -92,6 +92,30 @@ describe("client runtime", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("rejects responses redirected to a disallowed origin", async () => {
+    let requestInit: RequestInit | undefined;
+    const runtime = createMicroFrameClientRuntime({
+      fetch: async (_url, init) => {
+        requestInit = init;
+        const response = new Response("<p>untrusted</p>");
+        Object.defineProperty(response, "url", {
+          value: "https://untrusted.test/payload",
+        });
+        return response;
+      },
+    });
+    const handle = runtime.prepare({ id: "frame", src: "/redirect" });
+    const host = createHost("frame", "/redirect", "idle");
+
+    runtime.attach(handle, host);
+
+    await expect(handle.started).rejects.toThrow("origin is not allowed");
+    await expect(handle.completed).rejects.toThrow("origin is not allowed");
+    expect(requestInit?.redirect).toBe("error");
+    expect(host.textContent).toBe("");
+    expect(host.dataset.microFrameState).toBe("error");
+  });
+
   it("clears partial content and rejects on HTTP errors", async () => {
     const runtime = createMicroFrameClientRuntime({
       fetch: async () => new Response("missing", { status: 404, statusText: "Not Found" }),

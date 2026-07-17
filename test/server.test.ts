@@ -574,6 +574,32 @@ describe("server stream composition", () => {
     expect(html).toContain("while(s.nextSibling)s.nextSibling.remove()");
   });
 
+  it("rejects responses redirected to a disallowed origin", async () => {
+    let requestInit: RequestInit | undefined;
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      fetch: async (_url, init) => {
+        requestInit = init;
+        const response = streamedResponse(["<p>untrusted</p>"]);
+        Object.defineProperty(response, "url", {
+          value: "https://untrusted.test/payload",
+        });
+        return response;
+      },
+    });
+    const handle = register(runtime);
+
+    async function* reactOutput() {
+      yield `${startMarker("frame")}${endMarker("frame")}`;
+    }
+
+    const html = await collect(runtime.compose(reactOutput()));
+    await expect(handle.started).rejects.toThrow("origin is not allowed");
+    await expect(handle.completed).rejects.toThrow("origin is not allowed");
+    expect(requestInit?.redirect).toBe("error");
+    expect(html).not.toContain("<p>untrusted</p>");
+  });
+
   it("supports the normal React pipeable-stream contract", async () => {
     const runtime = createMicroFrameServerRuntime({
       origin: "https://host.test",

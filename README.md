@@ -159,6 +159,8 @@ The client runtime:
 - Waits for blocking assets through `writable-dom`.
 - Avoids duplicate requests caused by React Strict Mode effect replay.
 
+Both runtimes reject HTTP redirects so an allowlisted endpoint cannot transfer a request or forwarded headers to another origin. Use the final fragment URL as `src` instead.
+
 ## Component API
 
 ```ts
@@ -175,7 +177,7 @@ interface MicroFrameProps {
 }
 ```
 
-A custom fetch can alter the method or body while retaining the runtime's environment-specific fetch:
+A custom fetch can alter the method or body while retaining the runtime's environment-specific fetch. Custom fetch implementations are privileged and must preserve the supplied `redirect: "error"` policy:
 
 ```tsx
 <MicroFrame

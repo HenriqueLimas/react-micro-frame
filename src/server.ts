@@ -345,6 +345,7 @@ export function createMicroFrameServerRuntime(
     const init: RequestInit = {
       headers,
       signal: entry.controller.signal,
+      redirect: "error",
       ...(request.cache ? { cache: request.cache } : {}),
     };
     const requestFetch = request.fetch ?? options.fetch;
@@ -354,6 +355,15 @@ export function createMicroFrameServerRuntime(
         ? requestFetch(url.href, init, globalThis.fetch)
         : globalThis.fetch(url, init));
 
+      if (response.url) {
+        const responseOrigin = new URL(response.url).origin;
+        if (!allowedOrigins.has(responseOrigin)) {
+          throw new MicroFrameError(
+            `Micro-frame response origin is not allowed: ${responseOrigin}`,
+            response.url,
+          );
+        }
+      }
       if (!response.ok) {
         throw new MicroFrameHttpError(
           url.href,
