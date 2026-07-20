@@ -114,8 +114,14 @@ export function createMicroFrameServerRuntime(
       } satisfies ServerEntry;
 
       entry.response = startRequest(entry);
-      // The composer consumes this rejection later; avoid an early unhandled rejection.
-      void entry.response.catch(() => undefined);
+      void entry.response.catch((cause) => {
+        rejectUnconsumed(entry, cause);
+      });
+      entry.controller.signal.addEventListener(
+        "abort",
+        () => rejectUnconsumed(entry, entry.controller.signal.reason),
+        { once: true },
+      );
       entries.set(request.id, entry);
       return entry;
     },
@@ -344,6 +350,14 @@ export function createMicroFrameServerRuntime(
         }
       }
     }
+  }
+
+  function rejectUnconsumed(entry: ServerEntry, cause: unknown): void {
+    if (entry.consumed) return;
+    clearTimeout(entry.timer);
+    const error = toError(cause, entry.request.src);
+    entry.start.reject(error);
+    entry.completion.reject(error);
   }
 
   async function startRequest(entry: ServerEntry): Promise<Response> {

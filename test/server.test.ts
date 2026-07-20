@@ -792,6 +792,54 @@ describe("server stream composition", () => {
     }
   });
 
+  it.each(["in-order", "parallel"] as const)(
+    "settles failed requests omitted from %s composition",
+    async (composition) => {
+      const runtime = createMicroFrameServerRuntime({
+        origin: "https://host.test",
+        composition,
+        fetch: async () => {
+          throw new Error("request failed");
+        },
+      });
+      const handle = register(runtime);
+
+      async function* reactOutput() {
+        yield "<main>shell without frame</main>";
+      }
+
+      await collect(runtime.compose(reactOutput()));
+      await expect(handle.started).rejects.toThrow("request failed");
+      await expect(handle.completed).rejects.toThrow("request failed");
+    },
+  );
+
+  it("settles an omitted response body when its request times out", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      defaultTimeout: 5,
+      fetch: async (_url, init) =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              init.signal?.addEventListener("abort", () =>
+                controller.error(init.signal?.reason),
+              );
+            },
+          }),
+        ),
+    });
+    const handle = register(runtime);
+
+    async function* reactOutput() {
+      yield "<main>shell without frame</main>";
+    }
+
+    await collect(runtime.compose(reactOutput()));
+    await expect(handle.started).rejects.toThrow("timed out after 5ms");
+    await expect(handle.completed).rejects.toThrow("timed out after 5ms");
+  });
+
   it("aborts requests after the configured timeout", async () => {
     const runtime = createMicroFrameServerRuntime({
       origin: "https://host.test",
