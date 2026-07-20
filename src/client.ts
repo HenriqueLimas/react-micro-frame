@@ -171,27 +171,28 @@ export function createMicroFrameClientRuntime(
 
   async function startClientRequest(entry: ClientEntry): Promise<void> {
     const host = entry.host!;
-    const { start, end } = findMarkers(host);
-    clearBetween(start, end);
-    host.dataset.microFrameSrc = entry.request.src;
-    host.dataset.microFrameGeneration = String(entry.generation);
-    host.dataset.microFrameState = "loading";
-    delete host.dataset.microFrameError;
-    delete host.dataset.microFrameActivationError;
-
     const controller = new AbortController();
     entry.controller = controller;
     const timeout = entry.request.timeout ?? options.defaultTimeout ?? 30_000;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    if (timeout > 0) {
-      timer = setTimeout(() => {
-        controller.abort(
-          new MicroFrameTimeoutError(entry.request.src, timeout),
-        );
-      }, timeout);
-    }
+    let markers: ReturnType<typeof findMarkers> | undefined;
 
     try {
+      markers = findMarkers(host);
+      clearBetween(markers.start, markers.end);
+      host.dataset.microFrameSrc = entry.request.src;
+      host.dataset.microFrameGeneration = String(entry.generation);
+      host.dataset.microFrameState = "loading";
+      delete host.dataset.microFrameError;
+      delete host.dataset.microFrameActivationError;
+
+      if (timeout > 0) {
+        timer = setTimeout(() => {
+          controller.abort(
+            new MicroFrameTimeoutError(entry.request.src, timeout),
+          );
+        }, timeout);
+      }
       const url = new URL(entry.request.src, window.location.origin);
       const allowedOrigins = new Set(
         (options.allowedOrigins ?? [window.location.origin]).map(
@@ -241,7 +242,7 @@ export function createMicroFrameClientRuntime(
         );
       }
 
-      const writer = writableDOM(host, start) as WritableDOMWriter;
+      const writer = writableDOM(host, markers.start) as WritableDOMWriter;
       entry.writer = writer;
       let hasStarted = false;
       for await (const html of decodeReadableStream(response.body)) {
@@ -276,7 +277,7 @@ export function createMicroFrameClientRuntime(
           : toError(cause, entry.request.src);
       entry.writer?.abort(error);
       entry.start.reject(error);
-      clearBetween(start, end);
+      if (markers) clearBetween(markers.start, markers.end);
       host.dataset.microFrameState = "error";
       host.dataset.microFrameError = error.message;
       host.dispatchEvent(
