@@ -558,12 +558,7 @@ export function createMicroFrameServerRuntime(
     const eventState = jsonForScript(state);
     const message = jsonForScript(error?.message ?? "");
     const loadingId = jsonForScript(entry.id);
-    const clear =
-      state === "error"
-        ? transient
-          ? transientErrorClearScript(entry, loadingId)
-          : `let s;for(const n of h.childNodes){if(n.nodeType===8&&n.data.endsWith(":start")){s=n;break}}if(s)while(s.nextSibling)s.nextSibling.remove();const l=document.querySelector('[data-micro-frame-loading="'+${loadingId}+'"]');if(l)l.hidden=true;`
-        : "";
+    const clear = state === "error" ? errorClearScript(entry, loadingId) : "";
     const nonce = options.nonce
       ? ` nonce="${escapeAttribute(options.nonce)}"`
       : "";
@@ -586,10 +581,7 @@ export function createMicroFrameServerRuntime(
     return `h.dataset.microFrameSrc===${src}&&h.dataset.microFrameGeneration===${generation}`;
   }
 
-  function transientErrorClearScript(
-    entry: ServerEntry,
-    loadingId: string,
-  ): string {
+  function errorClearScript(entry: ServerEntry, loadingId: string): string {
     const startData = jsonForScript(`react-micro-frame:${entry.id}:start`);
     const endData = jsonForScript(`react-micro-frame:${entry.id}:end`);
     return `let s,e;for(const n of h.childNodes){if(n.nodeType!==8)continue;if(n.data===${startData})s=n;else if(n.data===${endData})e=n}if(s){let n=s.nextSibling;while(n&&n!==e){const next=n.nextSibling;n.remove();n=next}}const l=document.querySelector('[data-micro-frame-loading="'+${loadingId}+'"]');if(l)l.hidden=true;`;

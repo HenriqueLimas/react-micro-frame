@@ -528,6 +528,36 @@ describe("server stream composition", () => {
     dom.window.close();
   });
 
+  it("settles in-order failures without removing host markers", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      fetch: async () =>
+        new Response("missing", { status: 404, statusText: "Not Found" }),
+    });
+    const handle = runtime.prepare({ id: "frame", src: "/missing" });
+
+    async function* reactOutput() {
+      yield `<div id="react-micro-frame-frame">${startMarker("frame")}${endMarker("frame")}</div>`;
+    }
+
+    const html = await collect(runtime.compose(reactOutput()));
+    await expect(handle.started).rejects.toThrow("404 Not Found");
+    await expect(handle.completed).rejects.toThrow("404 Not Found");
+
+    const dom = new JSDOM(html, { runScripts: "outside-only" });
+    const script = dom.window.document.querySelector("script");
+    dom.window.eval(script?.textContent ?? "");
+    const host = dom.window.document.getElementById("react-micro-frame-frame");
+    expect(host?.dataset.microFrameState).toBe("error");
+    expect(
+      [...(host?.childNodes ?? [])]
+        .filter((node) => node.nodeType === dom.window.Node.COMMENT_NODE)
+        .map((node) => node.nodeValue),
+    ).toEqual(["react-micro-frame:frame:start", "react-micro-frame:frame:end"]);
+    expect(dom.window.document.querySelector("script")).toBeNull();
+    dom.window.close();
+  });
+
   it("settles parallel failures and removes their transient script", async () => {
     const runtime = createMicroFrameServerRuntime({
       origin: "https://host.test",
@@ -577,7 +607,7 @@ describe("server stream composition", () => {
     await expect(handle.completed).rejects.toThrow("origin is not allowed");
     expect(fetch).not.toHaveBeenCalled();
     expect(html).toContain('h.dataset.microFrameState="error"');
-    expect(html).toContain("while(s.nextSibling)s.nextSibling.remove()");
+    expect(html).toContain('n.data==="react-micro-frame:frame:end"');
   });
 
   it("rejects responses redirected to a disallowed origin", async () => {
