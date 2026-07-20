@@ -825,6 +825,52 @@ describe("server stream composition", () => {
     runtime.abort();
   });
 
+  it("handles React stream errors emitted synchronously from pipe", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+    });
+    const abort = vi.fn();
+    const rendered = {
+      pipe(destination: NodeJS.WritableStream) {
+        (destination as PassThrough).destroy(new Error("React stream failed"));
+      },
+      abort,
+    };
+
+    await expect(runtime.pipe(rendered, new PassThrough())).rejects.toThrow(
+      "React stream failed",
+    );
+    expect(abort).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "React stream failed" }),
+    );
+  });
+
+  it("tears down the pipeline when React pipe throws synchronously", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+    });
+    const runtimeAbort = vi.spyOn(runtime, "abort");
+    const abort = vi.fn();
+    const rendered = {
+      pipe() {
+        throw new Error("React pipe failed");
+      },
+      abort,
+    };
+    const destination = new PassThrough();
+
+    await expect(runtime.pipe(rendered, destination)).rejects.toThrow(
+      "React pipe failed",
+    );
+    expect(destination.destroyed).toBe(true);
+    expect(abort).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "React pipe failed" }),
+    );
+    expect(runtimeAbort).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "React pipe failed" }),
+    );
+  });
+
   it("aborts the React stream and runtime when piping fails", async () => {
     const runtime = createMicroFrameServerRuntime({
       origin: "https://host.test",

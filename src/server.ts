@@ -190,14 +190,21 @@ export function createMicroFrameServerRuntime(
 
     async pipe(rendered, destination) {
       const reactOutput = new PassThrough();
-      rendered.pipe(reactOutput);
+      const piping = pipeline(
+        Readable.from(runtime.compose(reactOutput)),
+        destination,
+      );
+      // Handle a rejection immediately in case rendered.pipe throws before we await it.
+      void piping.catch(() => undefined);
 
       try {
-        await pipeline(
-          Readable.from(runtime.compose(reactOutput)),
-          destination,
-        );
+        rendered.pipe(reactOutput);
+        await piping;
       } catch (error) {
+        if (!reactOutput.destroyed) {
+          reactOutput.destroy(error instanceof Error ? error : undefined);
+        }
+        await piping.catch(() => undefined);
         rendered.abort?.(error);
         runtime.abort(error);
         throw error;
