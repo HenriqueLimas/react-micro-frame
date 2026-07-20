@@ -1,5 +1,5 @@
 {
-  "name": "react-micro-frame",
+  "name": "@micro-frame/react",
   "version": "0.0.1",
   "description": "Stream independently rendered HTML into React applications on the server and in the browser.",
   "type": "module",
