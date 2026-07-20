@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
-import { MicroFrameProvider } from "react-micro-frame";
-import { createMicroFrameClientRuntime } from "react-micro-frame/client";
+import { MicroFrameProvider } from "@micro-frame/react";
+import { createMicroFrameClientRuntime } from "@micro-frame/react/client";
 import { App } from "./App";
 import {
   BrowserIntegrationApp,

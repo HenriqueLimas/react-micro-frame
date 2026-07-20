@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MicroFrame } from "react-micro-frame";
+import { MicroFrame } from "@micro-frame/react";
 
 export type BrowserIntegrationScenario =
   "active-hydration" | "blocking-script" | "blocking-style" | "csp" | "preload";

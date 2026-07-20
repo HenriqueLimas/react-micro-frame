@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MicroFrame } from "react-micro-frame";
+import { MicroFrame } from "@micro-frame/react";
 
 const reactFragmentOrigin = "http://127.0.0.1:5174";
 const markoFragmentOrigin = "http://127.0.0.1:5175";
@@ -11,7 +11,7 @@ export function App({ mode }: { mode: string }) {
   return (
     <main className="page">
       <header className="hero">
-        <span className="eyebrow">react-micro-frame playground</span>
+        <span className="eyebrow">@micro-frame/react playground</span>
         <h1>{mode}</h1>
         <p>
           This React application owns the page. It server-renders, hydrates, and

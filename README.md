@@ -8,6 +8,10 @@
   <a href="https://github.com/prettier/prettier">
     <img src="https://img.shields.io/badge/styled_with-prettier-ff69b4.svg" alt="Styled with prettier"/>
   </a>
+  <!-- Coverage -->
+  <a href="https://codecov.io/gh/HenriqueLimas/react-micro-frame">
+    <img src="https://codecov.io/gh/HenriqueLimas/react-micro-frame/branch/main/graph/badge.svg" alt="Code coverage"/>
+  </a>
 
   <!-- NPM Version -->
   <a href="https://npmjs.org/package/@micro-frame/react">
@@ -36,7 +40,7 @@ This repository is an initial implementation of the provider/runtime architectur
 ## Installation
 
 ```sh
-npm install react-micro-frame
+npm install @micro-frame/react
 ```
 
 React 19 and Node 20 or newer are required.
@@ -54,8 +58,8 @@ In the browser, the client runtime adopts server-rendered content or streams a n
 ```tsx
 import { PassThrough } from "node:stream";
 import { renderToPipeableStream } from "react-dom/server";
-import { MicroFrame, MicroFrameProvider } from "react-micro-frame";
-import { createMicroFrameServerRuntime } from "react-micro-frame/server";
+import { MicroFrame, MicroFrameProvider } from "@micro-frame/react";
+import { createMicroFrameServerRuntime } from "@micro-frame/react/server";
 
 function App() {
   return (
@@ -156,8 +160,8 @@ Create one client runtime for the React root:
 
 ```tsx
 import { hydrateRoot } from "react-dom/client";
-import { MicroFrameProvider } from "react-micro-frame";
-import { createMicroFrameClientRuntime } from "react-micro-frame/client";
+import { MicroFrameProvider } from "@micro-frame/react";
+import { createMicroFrameClientRuntime } from "@micro-frame/react/client";
 
 const runtime = createMicroFrameClientRuntime();
 
@@ -264,4 +268,4 @@ npm run test:e2e
 
 Add a release entry with `npm run changeset` and commit the generated file. When changesets reach `main`, the release workflow opens or updates a Version Packages pull request. Merging that pull request publishes the package to npm.
 
-The repository must have an `NPM_TOKEN` Actions secret with permission to publish `react-micro-frame`, and GitHub Actions must be allowed to create pull requests.
+The repository must have an `NPM_TOKEN` Actions secret with permission to publish `@micro-frame/react`, and GitHub Actions must be allowed to create pull requests.

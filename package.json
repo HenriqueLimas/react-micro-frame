@@ -37,6 +37,7 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "playground": "npm run build && npm run playground:dev",
     "playground:dev": "concurrently -k -n marko,react,host -c magenta,blue,green \"npm run dev -w playground-marko-server\" \"npm run dev -w playground-react-server\" \"npm run dev -w playground-react-client\"",
@@ -58,6 +59,7 @@
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "concurrently": "^10.0.3",
     "jsdom": "^26.1.0",
     "prettier": "^3.9.5",
@@ -66,7 +68,7 @@
     "react-dom": "^19.2.7",
     "tsup": "^8.5.0",
     "typescript": "^5.9.0",
-    "vitest": "^3.2.0"
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": ">=20"

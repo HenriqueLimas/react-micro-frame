@@ -1,8 +1,8 @@
 import { PassThrough } from "node:stream";
 import type { Response as ExpressResponse } from "express";
 import { renderToPipeableStream } from "react-dom/server";
-import { MicroFrameProvider } from "react-micro-frame";
-import { createMicroFrameServerRuntime } from "react-micro-frame/server";
+import { MicroFrameProvider } from "@micro-frame/react";
+import { createMicroFrameServerRuntime } from "@micro-frame/react/server";
 import { App } from "./App";
 import {
   BrowserIntegrationApp,
