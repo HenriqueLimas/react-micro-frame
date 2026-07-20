@@ -33,11 +33,11 @@ jobs:
       - name: 🎨 Check formatting
         run: npm run format:check
 
-      - name: 🔎 Check types
-        run: npm run check
-
       - name: 🏗️ Build package
         run: npm run build
+
+      - name: 🔎 Check types
+        run: npm run check
 
       - name: 🧪 Run tests with coverage
         run: npm run test:coverage
