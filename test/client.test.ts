@@ -153,6 +153,8 @@ describe("client runtime", () => {
     expect(
       runtime.prepare({ ...base, headers: { authorization: "token" } }),
     ).toBe(first);
+    const simple = runtime.prepare({ id: "simple", src: "/simple" });
+    expect(runtime.prepare({ id: "simple", src: "/simple" })).toBe(simple);
 
     const changes = [
       { src: "/other" },
@@ -195,6 +197,12 @@ describe("client runtime", () => {
 
     await expect(settled.started).rejects.toThrow("render failed");
     await expect(settled.completed).rejects.toThrow("render failed");
+
+    const defaultError = runtime.prepare({ id: "default", src: "/default" });
+    runtime.attach(defaultError, createHost("default", "/default", "error"));
+    await expect(defaultError.completed).rejects.toThrow(
+      "Server micro-frame failed",
+    );
 
     const streaming = runtime.prepare({ id: "streaming", src: "/streaming" });
     const streamingHost = createHost("streaming", "/streaming", "streaming");

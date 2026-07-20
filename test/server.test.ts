@@ -1,4 +1,4 @@
-import { PassThrough } from "node:stream";
+import { PassThrough, Writable } from "node:stream";
 import { JSDOM } from "jsdom";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -624,5 +624,233 @@ describe("server stream composition", () => {
 
     await runtime.pipe(rendered, destination);
     expect(await output).toMatch(/shell.*<p>remote<\/p>.*footer/s);
+  });
+
+  it("reuses registrations, rejects conflicts, and settles entries on abort", async () => {
+    const fetch = vi.fn(
+      async (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () =>
+            reject(init.signal?.reason),
+          );
+        }),
+    );
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      fetch,
+      defaultTimeout: 0,
+    });
+    const handle = register(runtime);
+
+    expect(register(runtime)).toBe(handle);
+    expect(() => runtime.prepare({ id: "frame", src: "/conflicting" })).toThrow(
+      "Conflicting micro-frame registration",
+    );
+
+    runtime.abort();
+    runtime.abort(new Error("ignored"));
+    await expect(handle.started).rejects.toThrow("server runtime aborted");
+    await expect(handle.completed).rejects.toThrow("server runtime aborted");
+    expect(() => runtime.prepare({ id: "late", src: "/late" })).toThrow(
+      "after the server runtime was aborted",
+    );
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("forwards selected headers and lets request options override runtime defaults", async () => {
+    let requestUrl = "";
+    let requestInit: RequestInit | undefined;
+    let receivedDefaultFetch: typeof globalThis.fetch | undefined;
+    const runtimeFetch = vi.fn();
+    const requestFetch = vi.fn(async (url, init, defaultFetch) => {
+      requestUrl = url;
+      requestInit = init;
+      receivedDefaultFetch = defaultFetch;
+      return streamedResponse([]);
+    });
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test/page",
+      allowedOrigins: [new URL("https://remote.test")],
+      requestHeaders: {
+        cookie: "session=1",
+        "x-forwarded": "incoming",
+      },
+      forwardHeaders: ["cookie", "x-missing", "x-forwarded"],
+      fetch: runtimeFetch,
+      defaultTimeout: 0,
+    });
+    const handle = runtime.prepare({
+      id: "frame",
+      src: "https://remote.test/content",
+      headers: { "x-forwarded": "request", "x-local": "yes" },
+      cache: "reload",
+      timeout: 0,
+      fetch: requestFetch,
+    });
+
+    async function* reactOutput() {
+      yield `${startMarker("frame")}${endMarker("frame")}`;
+    }
+
+    await collect(runtime.compose(reactOutput()));
+    await expect(handle.completed).resolves.toBeUndefined();
+    const headers = new Headers(requestInit?.headers);
+    expect(requestUrl).toBe("https://remote.test/content");
+    expect(headers.get("cookie")).toBe("session=1");
+    expect(headers.get("x-forwarded")).toBe("request");
+    expect(headers.get("x-local")).toBe("yes");
+    expect(headers.get("x-missing")).toBeNull();
+    expect(headers.get("accept")).toBe("text/html");
+    expect(requestInit?.cache).toBe("reload");
+    expect(requestInit?.redirect).toBe("error");
+    expect(receivedDefaultFetch).toBe(globalThis.fetch);
+    expect(runtimeFetch).not.toHaveBeenCalled();
+  });
+
+  it("uses global fetch when no override is configured", async () => {
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(streamedResponse(["global"]));
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      defaultTimeout: 0,
+    });
+    register(runtime);
+
+    async function* reactOutput() {
+      yield `${startMarker("frame")}${endMarker("frame")}`;
+    }
+
+    await expect(collect(runtime.compose(reactOutput()))).resolves.toContain(
+      "global",
+    );
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("rejects bodyless responses and non-Error fetch failures", async () => {
+    const cases = [
+      {
+        id: "bodyless",
+        fetch: async () => new Response(null, { status: 204 }),
+        message: "body is not a stream",
+      },
+      {
+        id: "offline",
+        fetch: async () => {
+          throw "offline";
+        },
+        message: "offline",
+      },
+    ];
+
+    for (const testCase of cases) {
+      const runtime = createMicroFrameServerRuntime({
+        origin: "https://host.test",
+        fetch: testCase.fetch,
+        defaultTimeout: 0,
+      });
+      const handle = runtime.prepare({ id: testCase.id, src: "/remote" });
+
+      async function* reactOutput() {
+        yield `${startMarker(testCase.id)}${endMarker(testCase.id)}`;
+      }
+
+      const html = await collect(runtime.compose(reactOutput()));
+      await expect(handle.started).rejects.toThrow(testCase.message);
+      await expect(handle.completed).rejects.toThrow(testCase.message);
+      expect(html).toContain('microFrameState="error"');
+    }
+  });
+
+  it("aborts requests after the configured timeout", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      defaultTimeout: 5,
+      fetch: async (_url, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () =>
+            reject(init.signal?.reason),
+          );
+        }),
+    });
+    const handle = register(runtime);
+
+    async function* reactOutput() {
+      yield `${startMarker("frame")}${endMarker("frame")}`;
+    }
+
+    await collect(runtime.compose(reactOutput()));
+    await expect(handle.started).rejects.toThrow("timed out after 5ms");
+    await expect(handle.completed).rejects.toThrow("timed out after 5ms");
+  });
+
+  it("preserves malformed and duplicate markers without consuming twice", async () => {
+    const fetch = vi.fn(async () => streamedResponse(["remote"]));
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      fetch,
+    });
+    register(runtime);
+
+    async function* reactOutput() {
+      yield "prefix<!--react-micro-frame:unknown:start-->";
+      yield `${startMarker("frame")}${startMarker("frame")}`;
+      yield "<!--react-micro-frame:unfinished";
+    }
+
+    const html = await collect(runtime.compose(reactOutput()));
+    expect(html).toContain("<!--react-micro-frame:unknown:start-->");
+    expect(html).toContain("<!--react-micro-frame:unfinished");
+    expect(html.match(/remote/g)).toHaveLength(1);
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a parallel payload that finishes in an unsafe parser context", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      composition: "parallel",
+      defaultTimeout: 0,
+      fetch: async () =>
+        new Response(new ReadableStream<Uint8Array>({ start() {} })),
+    });
+    runtime.prepare({ id: "frame", src: "/remote" });
+
+    async function* reactOutput() {
+      yield `${startMarker("frame")}<plaintext>never safe`;
+    }
+
+    await expect(collect(runtime.compose(reactOutput()))).rejects.toThrow(
+      "final HTML parser context",
+    );
+    runtime.abort();
+  });
+
+  it("aborts the React stream and runtime when piping fails", async () => {
+    const runtime = createMicroFrameServerRuntime({
+      origin: "https://host.test",
+      defaultTimeout: 0,
+      fetch: async () => new Promise<Response>(() => undefined),
+    });
+    const handle = register(runtime);
+    const abort = vi.fn();
+    const rendered = {
+      pipe(destination: NodeJS.WritableStream) {
+        destination.end("shell");
+      },
+      abort,
+    };
+    const destination = new Writable({
+      write(_chunk, _encoding, callback) {
+        callback(new Error("destination failed"));
+      },
+    });
+
+    await expect(runtime.pipe(rendered, destination)).rejects.toThrow(
+      "destination failed",
+    );
+    expect(abort).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "destination failed" }),
+    );
+    await expect(handle.completed).rejects.toThrow("destination failed");
   });
 });

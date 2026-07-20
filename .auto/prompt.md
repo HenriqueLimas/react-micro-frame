@@ -39,4 +39,7 @@ Raise automated unit/integration coverage of the production TypeScript in `src/`
 ## What's Been Tried
 
 - Baseline on 2026-07-20: statements 83.28%, branches 69.51%, functions 85.36%, lines 84.88% (30 tests). The main gaps were client lifecycle/error branches, React context/error-boundary behavior, error constructors, and server failure/parser-state branches.
-- Client lifecycle and request-boundary coverage raised the metrics to statements 90.01%, branches 79.25%, functions 95.12%, lines 91.02% (40 tests). Tests exposed and fixed an unhandled rejection when a host lacked DOM markers; marker discovery now participates in normal client error settlement. Remaining target is branch coverage, especially React component branches and server abort/failure/parser-state paths.
+- Client lifecycle and request-boundary coverage raised the metrics to statements 90.01%, branches 79.25%, functions 95.12%, lines 91.02% (40 tests). Tests exposed and fixed an unhandled rejection when a host lacked DOM markers; marker discovery now participates in normal client error settlement.
+- React provider, boundary, and `MicroFrame` integration tests covered all component branches and raised branch coverage to 83.24% (46 tests).
+- Server registration/abort, request configuration, global fetch, bodyless/non-Error failures, timeout, malformed markers, unsafe parallel composition, and pipe failure contracts raised branch coverage to 89.36% (54 tests).
+- Equivalent headerless client requests and public error contracts reached the goal: statements 95.78%, branches 90.42%, functions 100%, lines 96.34% (57 tests). Vitest now enforces 90% thresholds across all four dimensions.
