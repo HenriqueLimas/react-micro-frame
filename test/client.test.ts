@@ -34,17 +34,18 @@ function createHost(id: string, src: string, state: string): HTMLDivElement {
 
 describe("client runtime", () => {
   it("streams HTML into the opaque region", async () => {
-    const fetch = vi.fn(async () =>
-      new Response(
-        new ReadableStream({
-          start(controller) {
-            controller.enqueue(
-              new TextEncoder().encode("<span>first</span><p>héllo</p>"),
-            );
-            controller.close();
-          },
-        }),
-      ),
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(
+                new TextEncoder().encode("<span>first</span><p>héllo</p>"),
+              );
+              controller.close();
+            },
+          }),
+        ),
     );
     const runtime = createMicroFrameClientRuntime({ fetch });
     const handle = runtime.prepare({ id: "frame", src: "/remote" });
@@ -82,7 +83,10 @@ describe("client runtime", () => {
     const runtime = createMicroFrameClientRuntime({ fetch });
     const handle = runtime.prepare({ id: "frame", src: "/remote" });
     const host = createHost("frame", "/remote", "complete");
-    host.insertBefore(document.createTextNode("server content"), host.lastChild);
+    host.insertBefore(
+      document.createTextNode("server content"),
+      host.lastChild,
+    );
 
     runtime.attach(handle, host);
     await expect(handle.started).resolves.toBeUndefined();
@@ -118,7 +122,8 @@ describe("client runtime", () => {
 
   it("clears partial content and rejects on HTTP errors", async () => {
     const runtime = createMicroFrameClientRuntime({
-      fetch: async () => new Response("missing", { status: 404, statusText: "Not Found" }),
+      fetch: async () =>
+        new Response("missing", { status: 404, statusText: "Not Found" }),
     });
     const handle = runtime.prepare({ id: "frame", src: "/missing" });
     const host = createHost("frame", "/missing", "idle");

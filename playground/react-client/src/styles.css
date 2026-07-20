@@ -5,28 +5,118 @@
   font-synthesis: none;
 }
 
-* { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
-button { font: inherit; }
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+}
+button {
+  font: inherit;
+}
 
-.page { width: min(900px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
-.hero { margin-bottom: 24px; }
-.eyebrow { color: #6558d3; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
-h1 { margin: 8px 0; font-size: clamp(2rem, 6vw, 4rem); line-height: 1; }
-.hero p { color: #526079; font-size: 1.1rem; }
-.controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
-.controls button { border: 0; border-radius: 999px; padding: 10px 16px; color: white; background: #5145b7; cursor: pointer; }
-.controls button:hover { background: #403494; }
-.controls output { color: #526079; }
-.host-panel { overflow: hidden; border: 1px solid #d8dded; border-radius: 18px; padding: 24px; background: white; box-shadow: 0 20px 60px rgb(65 69 112 / 12%); }
-.host-panel > h2 { margin-top: 0; font-size: 1rem; color: #526079; }
-.frame-grid { display: grid; gap: 24px; }
-.frame-grid > section { min-width: 0; border-top: 1px solid #e5e8f1; padding-top: 18px; }
-.frame-grid > section > h3 { margin: 0; color: #39455c; font-size: 0.95rem; }
-.frame-shell { min-height: 150px; margin: 14px 0 18px; }
-.loading, .empty, .error { border-radius: 12px; padding: 24px; }
-.loading { color: #5145b7; background: #f0efff; animation: pulse 900ms ease-in-out infinite alternate; }
-.error { color: #8a1730; background: #ffe8ed; }
-.empty { color: #526079; background: #f5f6fa; }
-.after-frame { margin-bottom: 0; color: #526079; }
-@keyframes pulse { to { opacity: 0.55; } }
+.page {
+  width: min(900px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 48px 0;
+}
+.hero {
+  margin-bottom: 24px;
+}
+.eyebrow {
+  color: #6558d3;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 8px 0;
+  font-size: clamp(2rem, 6vw, 4rem);
+  line-height: 1;
+}
+.hero p {
+  color: #526079;
+  font-size: 1.1rem;
+}
+.controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.controls button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  color: white;
+  background: #5145b7;
+  cursor: pointer;
+}
+.controls button:hover {
+  background: #403494;
+}
+.controls output {
+  color: #526079;
+}
+.host-panel {
+  overflow: hidden;
+  border: 1px solid #d8dded;
+  border-radius: 18px;
+  padding: 24px;
+  background: white;
+  box-shadow: 0 20px 60px rgb(65 69 112 / 12%);
+}
+.host-panel > h2 {
+  margin-top: 0;
+  font-size: 1rem;
+  color: #526079;
+}
+.frame-grid {
+  display: grid;
+  gap: 24px;
+}
+.frame-grid > section {
+  min-width: 0;
+  border-top: 1px solid #e5e8f1;
+  padding-top: 18px;
+}
+.frame-grid > section > h3 {
+  margin: 0;
+  color: #39455c;
+  font-size: 0.95rem;
+}
+.frame-shell {
+  min-height: 150px;
+  margin: 14px 0 18px;
+}
+.loading,
+.empty,
+.error {
+  border-radius: 12px;
+  padding: 24px;
+}
+.loading {
+  color: #5145b7;
+  background: #f0efff;
+  animation: pulse 900ms ease-in-out infinite alternate;
+}
+.error {
+  color: #8a1730;
+  background: #ffe8ed;
+}
+.empty {
+  color: #526079;
+  background: #f5f6fa;
+}
+.after-frame {
+  margin-bottom: 0;
+  color: #526079;
+}
+@keyframes pulse {
+  to {
+    opacity: 0.55;
+  }
+}

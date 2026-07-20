@@ -2,11 +2,7 @@ import { useState } from "react";
 import { MicroFrame } from "react-micro-frame";
 
 export type BrowserIntegrationScenario =
-  | "active-hydration"
-  | "blocking-script"
-  | "blocking-style"
-  | "csp"
-  | "preload";
+  "active-hydration" | "blocking-script" | "blocking-style" | "csp" | "preload";
 
 export function getBrowserIntegrationScenario(
   url: string,
@@ -15,10 +11,10 @@ export function getBrowserIntegrationScenario(
     "integration",
   );
   return scenario === "active-hydration" ||
-      scenario === "blocking-script" ||
-      scenario === "blocking-style" ||
-      scenario === "csp" ||
-      scenario === "preload"
+    scenario === "blocking-script" ||
+    scenario === "blocking-style" ||
+    scenario === "csp" ||
+    scenario === "preload"
     ? scenario
     : undefined;
 }

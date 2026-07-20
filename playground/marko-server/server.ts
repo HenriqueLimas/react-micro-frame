@@ -17,7 +17,10 @@ const vite = await createViteServer({
 
 app.use((request, response, next) => {
   const origin = request.headers.origin;
-  if (origin === "http://127.0.0.1:5173" || origin === "http://127.0.0.1:5174") {
+  if (
+    origin === "http://127.0.0.1:5173" ||
+    origin === "http://127.0.0.1:5174"
+  ) {
     response.setHeader("access-control-allow-origin", origin);
     response.setHeader("vary", "origin");
   }
@@ -32,13 +35,16 @@ app.use((request, response, next) => {
 
 app.get("/fragment", async (request, response, next) => {
   try {
-    const module = await vite.ssrLoadModule("/src/fragment.marko") as {
+    const module = (await vite.ssrLoadModule("/src/fragment.marko")) as {
       default: {
         render(input: Record<string, unknown>): NodeJS.ReadableStream;
       };
     };
     const version = Math.max(1, Number(request.query.version) || 1);
-    const delay = Math.min(4_000, Math.max(0, Number(request.query.delay) || 700));
+    const delay = Math.min(
+      4_000,
+      Math.max(0, Number(request.query.delay) || 700),
+    );
     const requestedInitialDelay = Number(request.query.initialDelay);
     const initialDelay = Number.isFinite(requestedInitialDelay)
       ? Math.min(4_000, Math.max(0, requestedInitialDelay))

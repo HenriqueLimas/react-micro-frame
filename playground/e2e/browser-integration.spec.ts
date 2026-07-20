@@ -24,7 +24,9 @@ test("a strict nonce-based CSP permits server composition and hydration", async 
   await expect(host.locator('[data-browser-fixture="csp"]')).toBeVisible();
   await expect(host).toHaveAttribute("data-micro-frame-state", "complete");
   await page.getByRole("button", { name: "Confirm hydration" }).click();
-  await expect(page.locator("[data-hydration-confirmed]")).toHaveText("Hydrated");
+  await expect(page.locator("[data-hydration-confirmed]")).toHaveText(
+    "Hydrated",
+  );
   expect(violations).toEqual([]);
 });
 
@@ -43,7 +45,9 @@ test("the host hydrates while its server-composed fragment is still streaming", 
   await page.getByRole("button", { name: "Confirm hydration" }).click();
   await expect(page.locator("[data-hydration-confirmed]")).toHaveText(
     "Hydrated",
-    { timeout: 1_000 },
+    {
+      timeout: 1_000,
+    },
   );
   await expect(host.locator("[data-active-stream-complete]")).toHaveCount(0);
 
@@ -58,14 +62,20 @@ test("browser streaming preserves blocking script execution order", async ({
 
   const host = page.locator("[data-micro-frame-state]");
   const fixture = host.locator('[data-browser-fixture="blocking-script"]');
-  await expect(fixture).toHaveAttribute("data-script-order", "external-1,inline");
+  await expect(fixture).toHaveAttribute(
+    "data-script-order",
+    "external-1,inline",
+  );
   await expect(host).toHaveAttribute("data-micro-frame-state", "complete");
 
   await page.getByRole("button", { name: "Reload fixture" }).click();
 
   await expect(host).toHaveAttribute("data-micro-frame-state", "streaming");
   await expect(host.locator("[data-after-script]")).toHaveCount(0);
-  await expect(fixture).toHaveAttribute("data-script-order", "external-2,inline");
+  await expect(fixture).toHaveAttribute(
+    "data-script-order",
+    "external-2,inline",
+  );
   await expect(host.locator("[data-after-script]")).toHaveText(
     "Content after the blocking script.",
   );

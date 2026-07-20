@@ -2,11 +2,11 @@
 
 The playground contains three Vite applications:
 
-| Application | URL | Purpose |
-| --- | --- | --- |
-| React host/client | http://127.0.0.1:5173 | Server-rendered and hydrated React page containing both micro-frames |
+| Application           | URL                            | Purpose                                                                  |
+| --------------------- | ------------------------------ | ------------------------------------------------------------------------ |
+| React host/client     | http://127.0.0.1:5173          | Server-rendered and hydrated React page containing both micro-frames     |
 | React fragment server | http://127.0.0.1:5174/fragment | Independent React SSR application that provides a streamed HTML fragment |
-| Marko fragment server | http://127.0.0.1:5175/fragment | Independent Marko application that provides a streamed HTML fragment |
+| Marko fragment server | http://127.0.0.1:5175/fragment | Independent Marko application that provides a streamed HTML fragment     |
 
 Start all three from the repository root:
 

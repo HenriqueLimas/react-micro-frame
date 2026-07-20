@@ -26,6 +26,8 @@ export class MicroFrameErrorBoundary extends Component<Props, State> {
     if (!error) return this.props.children;
 
     const { fallback } = this.props;
-    return typeof fallback === "function" ? fallback(error) : fallback ?? null;
+    return typeof fallback === "function"
+      ? fallback(error)
+      : (fallback ?? null);
   }
 }

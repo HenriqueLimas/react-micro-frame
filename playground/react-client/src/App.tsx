@@ -39,8 +39,16 @@ export function App({ mode }: { mode: string }) {
                 className="frame-shell"
                 src={`${reactFragmentOrigin}/fragment?version=${version}&delay=450`}
                 timeout={5_000}
-                loading={<div className="loading" role="status">Streaming React fragment…</div>}
-                error={(error) => <div className="error" role="alert">{error.message}</div>}
+                loading={
+                  <div className="loading" role="status">
+                    Streaming React fragment…
+                  </div>
+                }
+                error={(error) => (
+                  <div className="error" role="alert">
+                    {error.message}
+                  </div>
+                )}
               />
             </section>
 
@@ -50,15 +58,25 @@ export function App({ mode }: { mode: string }) {
                 className="frame-shell"
                 src={`${markoFragmentOrigin}/fragment?version=${version}&initialDelay=650&delay=700`}
                 timeout={5_000}
-                loading={<div className="loading" role="status">Streaming Marko fragment…</div>}
-                error={(error) => <div className="error" role="alert">{error.message}</div>}
+                loading={
+                  <div className="loading" role="status">
+                    Streaming Marko fragment…
+                  </div>
+                }
+                error={(error) => (
+                  <div className="error" role="alert">
+                    {error.message}
+                  </div>
+                )}
               />
             </section>
           </div>
         ) : (
           <div className="empty">Both micro-frames are unmounted.</div>
         )}
-        <p className="after-frame">This content remains owned by the hydrated React host.</p>
+        <p className="after-frame">
+          This content remains owned by the hydrated React host.
+        </p>
       </section>
     </main>
   );

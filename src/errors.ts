@@ -28,7 +28,10 @@ export class MicroFrameHttpError extends MicroFrameError {
 export class MicroFrameTimeoutError extends MicroFrameError {
   override readonly name = "MicroFrameTimeoutError";
 
-  constructor(src: string, readonly timeout: number) {
+  constructor(
+    src: string,
+    readonly timeout: number,
+  ) {
     super(`Micro-frame request timed out after ${timeout}ms: ${src}`, src);
   }
 }

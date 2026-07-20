@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("the SSR React host hydrates React and Marko micro-frames", async ({ page }) => {
+test("the SSR React host hydrates React and Marko micro-frames", async ({
+  page,
+}) => {
   const pageErrors: Error[] = [];
   page.on("pageerror", (error) => pageErrors.push(error));
   await page.goto("http://127.0.0.1:5173");
@@ -21,11 +23,21 @@ test("the SSR React host hydrates React and Marko micro-frames", async ({ page }
   ).toHaveAttribute("data-react-hydrated", "true");
   await expect(markoFragment).toHaveAttribute("data-marko-interactive", "");
 
-  await reactFragment.getByRole("button", { name: "Increment React counter" }).click();
-  await reactFragment.getByRole("button", { name: "Increment React counter" }).click();
-  await markoFragment.getByRole("button", { name: "Increment Marko counter" }).click();
-  await markoFragment.getByRole("button", { name: "Decrement Marko counter" }).click();
-  await markoFragment.getByRole("button", { name: "Decrement Marko counter" }).click();
+  await reactFragment
+    .getByRole("button", { name: "Increment React counter" })
+    .click();
+  await reactFragment
+    .getByRole("button", { name: "Increment React counter" })
+    .click();
+  await markoFragment
+    .getByRole("button", { name: "Increment Marko counter" })
+    .click();
+  await markoFragment
+    .getByRole("button", { name: "Decrement Marko counter" })
+    .click();
+  await markoFragment
+    .getByRole("button", { name: "Decrement Marko counter" })
+    .click();
   await expect(reactFragment.locator("[data-counter-output]")).toHaveText("2");
   await expect(markoFragment.locator("[data-counter-output]")).toHaveText("-1");
 
@@ -57,8 +69,12 @@ test("the SSR React host hydrates React and Marko micro-frames", async ({ page }
   await expect(markoFragment.locator("[data-counter-output]")).toHaveText("0");
 
   // Both framework runtimes must remain interactive after writable-dom replaces them.
-  await reactFragment.getByRole("button", { name: "Increment React counter" }).click();
-  await markoFragment.getByRole("button", { name: "Increment Marko counter" }).click();
+  await reactFragment
+    .getByRole("button", { name: "Increment React counter" })
+    .click();
+  await markoFragment
+    .getByRole("button", { name: "Increment Marko counter" })
+    .click();
   await expect(reactFragment.locator("[data-counter-output]")).toHaveText("1");
   await expect(markoFragment.locator("[data-counter-output]")).toHaveText("1");
 

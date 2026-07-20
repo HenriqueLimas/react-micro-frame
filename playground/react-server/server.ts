@@ -81,7 +81,10 @@ app.get("/integration/blocking-preload.css", (request, response) => {
   response.status(200);
   response.setHeader("content-type", "text/css; charset=utf-8");
   response.setHeader("cache-control", "no-store");
-  setTimeout(() => response.end("[data-preload-target] { display: block; }"), delay);
+  setTimeout(
+    () => response.end("[data-preload-target] { display: block; }"),
+    delay,
+  );
 });
 
 app.get("/integration/preload-target.svg", (_request, response) => {
@@ -158,9 +161,14 @@ app.get("/integration/blocking-script.js", (request, response) => {
 
 app.get("/fragment", async (request, response, next) => {
   try {
-    const module = await vite.ssrLoadModule("/src/fragment.tsx") as typeof import("./src/fragment");
+    const module = (await vite.ssrLoadModule(
+      "/src/fragment.tsx",
+    )) as typeof import("./src/fragment");
     const version = Math.max(1, Number(request.query.version) || 1);
-    const delay = Math.min(4_000, Math.max(0, Number(request.query.delay) || 450));
+    const delay = Math.min(
+      4_000,
+      Math.max(0, Number(request.query.delay) || 450),
+    );
 
     response.status(200);
     response.setHeader("content-type", "text/html; charset=utf-8");

@@ -2,7 +2,11 @@ import writableDOM from "writable-dom";
 import { decodeReadableStream } from "./decode";
 import { createDeferred, type Deferred } from "./deferred";
 import { clearBetween, findMarkers } from "./dom-markers";
-import { MicroFrameError, MicroFrameHttpError, MicroFrameTimeoutError } from "./errors";
+import {
+  MicroFrameError,
+  MicroFrameHttpError,
+  MicroFrameTimeoutError,
+} from "./errors";
 import type {
   MicroFrameFetch,
   MicroFrameHandle,
@@ -55,7 +59,8 @@ export function createMicroFrameClientRuntime(
         existing &&
         !existing.stopped &&
         requestsMatch(existing.request, request)
-      ) return existing;
+      )
+        return existing;
 
       const generation = (generations.get(request.id) ?? -1) + 1;
       generations.set(request.id, generation);
@@ -180,7 +185,9 @@ export function createMicroFrameClientRuntime(
     let timer: ReturnType<typeof setTimeout> | undefined;
     if (timeout > 0) {
       timer = setTimeout(() => {
-        controller.abort(new MicroFrameTimeoutError(entry.request.src, timeout));
+        controller.abort(
+          new MicroFrameTimeoutError(entry.request.src, timeout),
+        );
       }, timeout);
     }
 
@@ -228,7 +235,10 @@ export function createMicroFrameClientRuntime(
         );
       }
       if (!response.body) {
-        throw new MicroFrameError("Micro-frame response body is not a stream.", url.href);
+        throw new MicroFrameError(
+          "Micro-frame response body is not a stream.",
+          url.href,
+        );
       }
 
       const writer = writableDOM(host, start) as WritableDOMWriter;
@@ -260,9 +270,10 @@ export function createMicroFrameClientRuntime(
       entry.completion.resolve(undefined);
     } catch (cause) {
       if (entry.stopped) return;
-      const error = controller.signal.aborted && controller.signal.reason
-        ? toError(controller.signal.reason, entry.request.src)
-        : toError(cause, entry.request.src);
+      const error =
+        controller.signal.aborted && controller.signal.reason
+          ? toError(controller.signal.reason, entry.request.src)
+          : toError(cause, entry.request.src);
       entry.writer?.abort(error);
       entry.start.reject(error);
       clearBetween(start, end);

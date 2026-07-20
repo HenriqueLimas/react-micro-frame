@@ -6,8 +6,10 @@ const selector = "[data-react-counter-root]";
 const roots = new Map<Element, Root>();
 
 function hydrateCounters(parent: ParentNode = document) {
-  if (parent instanceof Element && parent.matches(selector)) hydrateCounter(parent);
-  for (const element of parent.querySelectorAll(selector)) hydrateCounter(element);
+  if (parent instanceof Element && parent.matches(selector))
+    hydrateCounter(parent);
+  for (const element of parent.querySelectorAll(selector))
+    hydrateCounter(element);
 }
 
 function hydrateCounter(element: Element) {

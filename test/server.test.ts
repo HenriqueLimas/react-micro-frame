@@ -13,9 +13,10 @@ async function collect(
   const decoder = new TextDecoder();
   let result = "";
   for await (const chunk of iterable) {
-    result += typeof chunk === "string"
-      ? chunk
-      : decoder.decode(chunk, { stream: true });
+    result +=
+      typeof chunk === "string"
+        ? chunk
+        : decoder.decode(chunk, { stream: true });
   }
   return result + decoder.decode();
 }
@@ -178,7 +179,7 @@ describe("server stream composition", () => {
       composition: "parallel",
       fetch: async () =>
         streamedResponse([
-          '<script>window.acceptedPayloadExecuted=true</script><p>remote</p>',
+          "<script>window.acceptedPayloadExecuted=true</script><p>remote</p>",
         ]),
     });
     runtime.prepare({ id: "frame", src: "/remote" });
@@ -256,9 +257,9 @@ describe("server stream composition", () => {
         ?.textContent,
     ).toBe("remote");
     expect(
-      dom.window.document.querySelector("#react-micro-frame-frame")?.getAttribute(
-        "data-micro-frame-state",
-      ),
+      dom.window.document
+        .querySelector("#react-micro-frame-frame")
+        ?.getAttribute("data-micro-frame-state"),
     ).toBe("complete");
     dom.window.close();
   });
@@ -327,7 +328,9 @@ describe("server stream composition", () => {
     }
 
     const html = await collect(runtime.compose(reactOutput()));
-    expect(html.indexOf("</iframe>")).toBeLessThan(html.indexOf("<p>remote</p>"));
+    expect(html.indexOf("</iframe>")).toBeLessThan(
+      html.indexOf("<p>remote</p>"),
+    );
 
     const dom = new JSDOM(html, { runScripts: "dangerously" });
     expect(
@@ -467,16 +470,22 @@ describe("server stream composition", () => {
 
       const dom = new JSDOM(html, { runScripts: "dangerously" });
       const document = dom.window.document;
-      expect(document.getElementById("outer")?.contains(
-        document.getElementById("cursor"),
-      )).toBe(true);
-      expect(document.getElementById("react-micro-frame-frame")?.contains(
-        document.getElementById("inner"),
-      )).toBe(true);
+      expect(
+        document
+          .getElementById("outer")
+          ?.contains(document.getElementById("cursor")),
+      ).toBe(true);
+      expect(
+        document
+          .getElementById("react-micro-frame-frame")
+          ?.contains(document.getElementById("inner")),
+      ).toBe(true);
       if (document.getElementById("outer-input")) {
-        expect(document.getElementById("outer")?.contains(
-          document.getElementById("outer-input"),
-        )).toBe(true);
+        expect(
+          document
+            .getElementById("outer")
+            ?.contains(document.getElementById("outer-input")),
+        ).toBe(true);
       }
       dom.window.close();
     },
@@ -488,7 +497,7 @@ describe("server stream composition", () => {
       composition: "parallel",
       fetch: async () =>
         streamedResponse([
-          '<script>window.stalePayloadExecuted=true</script><p>stale</p>',
+          "<script>window.stalePayloadExecuted=true</script><p>stale</p>",
         ]),
     });
     runtime.prepare({ id: "frame", src: "/old" });
@@ -543,10 +552,7 @@ describe("server stream composition", () => {
       [...(host?.childNodes ?? [])]
         .filter((node) => node.nodeType === dom.window.Node.COMMENT_NODE)
         .map((node) => node.nodeValue),
-    ).toEqual([
-      "react-micro-frame:frame:start",
-      "react-micro-frame:frame:end",
-    ]);
+    ).toEqual(["react-micro-frame:frame:start", "react-micro-frame:frame:end"]);
     expect(dom.window.document.querySelector("script")).toBeNull();
     dom.window.close();
   });

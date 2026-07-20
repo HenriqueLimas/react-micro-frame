@@ -22,7 +22,11 @@ async function DelayedChunk({ version, delay }: FragmentInput) {
 
 function ReactFragment(input: FragmentInput) {
   return (
-    <article className="react-card" data-react-fragment data-version={input.version}>
+    <article
+      className="react-card"
+      data-react-fragment
+      data-version={input.version}
+    >
       <style>{`
         .react-card {
           position: relative;
@@ -64,7 +68,13 @@ function ReactFragment(input: FragmentInput) {
       <p className="chunk" data-first-chunk>
         This heading and stylesheet arrived in the first React response chunk.
       </p>
-      <Suspense fallback={<p data-fragment-pending>React server is preparing its delayed chunk…</p>}>
+      <Suspense
+        fallback={
+          <p data-fragment-pending>
+            React server is preparing its delayed chunk…
+          </p>
+        }
+      >
         <DelayedChunk {...input} />
       </Suspense>
       <script
@@ -76,10 +86,7 @@ function ReactFragment(input: FragmentInput) {
   );
 }
 
-export function renderFragment(
-  input: FragmentInput,
-  destination: Writable,
-) {
+export function renderFragment(input: FragmentInput, destination: Writable) {
   let rendered: ReturnType<typeof renderToPipeableStream>;
   rendered = renderToPipeableStream(<ReactFragment {...input} />, {
     onShellReady() {

@@ -66,7 +66,8 @@ export function render(
         },
         onShellError(error) {
           runtime.abort(error);
-          if (!started) response.status(500).end("Unable to render React shell.");
+          if (!started)
+            response.status(500).end("Unable to render React shell.");
           reject(error);
         },
         onError(error) {

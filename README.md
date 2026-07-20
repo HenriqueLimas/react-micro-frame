@@ -1,4 +1,27 @@
-# react-micro-frame
+<h1 align="center">
+  <!-- Logo -->
+  <br/>
+  @micro-frame/react
+  <br/>
+
+  <!-- Format -->
+  <a href="https://github.com/prettier/prettier">
+    <img src="https://img.shields.io/badge/styled_with-prettier-ff69b4.svg" alt="Styled with prettier"/>
+  </a>
+
+  <!-- NPM Version -->
+  <a href="https://npmjs.org/package/@micro-frame/react">
+    <img src="https://img.shields.io/npm/v/@micro-frame/react.svg" alt="NPM Version"/>
+  </a>
+  <!-- Downloads -->
+  <a href="https://npmjs.org/package/@micro-frame/react">
+    <img src="https://img.shields.io/npm/dm/@micro-frame/react.svg" alt="Downloads"/>
+  </a>
+</h1>
+
+<p align="center">
+  A React Component for building SSR friendly micro frontends.
+</p>
 
 Stream trusted HTML fragments from independently deployed applications directly into a React page. The host can fetch and progressively render a fragment during React SSR, adopt it during hydration, and fetch future updates in the browser.
 
@@ -122,10 +145,7 @@ By default, only the configured `origin` is allowed and no incoming request head
 ```ts
 createMicroFrameServerRuntime({
   origin: "https://www.example.com",
-  allowedOrigins: [
-    "https://www.example.com",
-    "https://fragments.example.com",
-  ],
+  allowedOrigins: ["https://www.example.com", "https://fragments.example.com"],
   forwardHeaders: ["cookie", "accept-language"],
 });
 ```

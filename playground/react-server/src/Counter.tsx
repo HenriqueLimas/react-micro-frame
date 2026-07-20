@@ -13,7 +13,9 @@ export function Counter() {
       >
         −
       </button>
-      <output data-counter-output aria-live="polite">{count}</output>
+      <output data-counter-output aria-live="polite">
+        {count}
+      </output>
       <button
         type="button"
         data-counter-increment

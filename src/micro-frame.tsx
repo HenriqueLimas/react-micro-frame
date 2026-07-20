@@ -8,7 +8,12 @@ import {
   useRef,
 } from "react";
 import { useMicroFrameRuntime } from "./context";
-import { endMarker, hostElementId, normalizeReactId, startMarker } from "./dom-markers";
+import {
+  endMarker,
+  hostElementId,
+  normalizeReactId,
+  startMarker,
+} from "./dom-markers";
 import { MicroFrameErrorBoundary } from "./error-boundary";
 import type { MicroFrameHandle, MicroFrameProps } from "./types";
 
@@ -87,13 +92,7 @@ export function MicroFrame({
   return (
     <div className={className} style={style} data-micro-frame-shell={id}>
       <MicroFrameErrorBoundary key={handle.generation} fallback={error}>
-        <Suspense
-          fallback={
-            <div data-micro-frame-loading={id}>
-              {loading}
-            </div>
-          }
-        >
+        <Suspense fallback={<div data-micro-frame-loading={id}>{loading}</div>}>
           <StreamStatus promise={handle.started} />
         </Suspense>
         <Suspense fallback={null}>
