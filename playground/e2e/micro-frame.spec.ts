@@ -41,6 +41,33 @@ test("the SSR React host hydrates React and Marko micro-frames", async ({
   await expect(reactFragment.locator("[data-counter-output]")).toHaveText("2");
   await expect(markoFragment.locator("[data-counter-output]")).toHaveText("-1");
 
+  // Record any paintable loading fallback that remains when version 2 arrives.
+  await page.evaluate(() => {
+    const panel = document.querySelector<HTMLElement>(".host-panel")!;
+    const observer = new MutationObserver(() => {
+      for (const section of panel.querySelectorAll("[data-provider]")) {
+        const fragment = section.querySelector('[data-version="2"]');
+        const loading = section.querySelector<HTMLElement>(
+          "[data-micro-frame-loading]",
+        );
+        if (
+          fragment &&
+          loading &&
+          getComputedStyle(loading).display !== "none"
+        ) {
+          observer.disconnect();
+          panel.dataset.detectedLoadingOverlap = "true";
+          return;
+        }
+      }
+    });
+    observer.observe(panel, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
+  });
+
   // This update is performed by the hydrated host and exercises browser fetching.
   await page.getByRole("button", { name: "Reload fragments" }).click();
   await expect(
@@ -48,6 +75,10 @@ test("the SSR React host hydrates React and Marko micro-frames", async ({
   ).toBeVisible();
   await expect(reactFragment).toHaveAttribute("data-version", "2");
   await expect(markoFragment).toHaveAttribute("data-version", "2");
+  await expect(page.locator(".host-panel")).not.toHaveAttribute(
+    "data-detected-loading-overlap",
+    "true",
+  );
 
   // The host fallback disappears on the first chunk, before either stream completes.
   await expect(
@@ -88,6 +119,10 @@ test("the SSR React host hydrates React and Marko micro-frames", async ({
   await expect(
     page.locator('[data-provider="marko"] [data-marko-fragment]'),
   ).toHaveAttribute("data-version", "2");
+  await expect(page.locator(".host-panel")).not.toHaveAttribute(
+    "data-detected-loading-overlap",
+    "true",
+  );
   expect(pageErrors).toEqual([]);
 });
 

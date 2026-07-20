@@ -126,6 +126,7 @@ export function createMicroFrameClientRuntime(
 
     if (renderedSrc === entry.request.src && state !== "idle") {
       if (state === "complete") {
+        hideLoadingFallback(host, entry.id);
         entry.start.resolve(undefined);
         entry.completion.resolve(undefined);
         return;
@@ -139,13 +140,20 @@ export function createMicroFrameClientRuntime(
         entry.completion.reject(error);
         return;
       }
-      if (state === "streaming") entry.start.resolve(undefined);
+      if (state === "streaming") {
+        hideLoadingFallback(host, entry.id);
+        entry.start.resolve(undefined);
+      }
 
-      const onStarted = () => entry.start.resolve(undefined);
+      const onStarted = () => {
+        hideLoadingFallback(host, entry.id);
+        entry.start.resolve(undefined);
+      };
       const onSettled = () => {
         entry.detachSettlementListener?.();
         entry.detachSettlementListener = undefined;
         if (host.dataset.microFrameState === "complete") {
+          hideLoadingFallback(host, entry.id);
           entry.start.resolve(undefined);
           entry.completion.resolve(undefined);
         } else {
@@ -250,12 +258,14 @@ export function createMicroFrameClientRuntime(
         if (!hasStarted) {
           hasStarted = true;
           host.dataset.microFrameState = "streaming";
+          hideLoadingFallback(host, entry.id);
           host.dispatchEvent(new CustomEvent("react-micro-frame:started"));
           entry.start.resolve(undefined);
         }
       }
       if (!hasStarted) {
         host.dataset.microFrameState = "streaming";
+        hideLoadingFallback(host, entry.id);
         host.dispatchEvent(new CustomEvent("react-micro-frame:started"));
         entry.start.resolve(undefined);
       }
@@ -301,6 +311,20 @@ export function createMicroFrameClientRuntime(
     // Superseded and unmounted resources should settle without showing an error.
     entry.start.resolve(undefined);
     entry.completion.resolve(undefined);
+  }
+}
+
+function hideLoadingFallback(host: HTMLElement, id: string): void {
+  // React may defer the Suspense retry, so coordinate visibility immediately
+  // rather than allowing the streamed host and its fallback to paint together.
+  const shell = host.parentElement;
+  if (!shell) return;
+
+  for (const child of shell.children) {
+    if (child.getAttribute("data-micro-frame-loading") === id) {
+      (child as HTMLElement).style.display = "none";
+      return;
+    }
   }
 }
 

@@ -63,6 +63,25 @@ describe("client runtime", () => {
     detach();
   });
 
+  it("hides the loading fallback when the first chunk is inserted", async () => {
+    const runtime = createMicroFrameClientRuntime({
+      fetch: async () => new Response("<p>first</p>"),
+    });
+    const handle = runtime.prepare({ id: "frame", src: "/remote" });
+    const host = createHost("frame", "/remote", "idle");
+    const shell = document.createElement("div");
+    const loading = document.createElement("div");
+    loading.dataset.microFrameLoading = "frame";
+    shell.append(loading, host);
+    document.body.appendChild(shell);
+
+    runtime.attach(handle, host);
+    await handle.started;
+
+    expect(host.textContent).toBe("first");
+    expect(loading.style.display).toBe("none");
+  });
+
   it("preserves UTF-8 characters split across network chunks", async () => {
     const encoded = new TextEncoder().encode("héllo");
     const split = encoded.indexOf(0xc3) + 1;
